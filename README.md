@@ -70,7 +70,7 @@ Add-Content -Path "$env:ProgramData\ssh\administrators_authorized_keys" `
 icacls "$env:ProgramData\ssh\administrators_authorized_keys" /inheritance:r `
     /grant "SYSTEM:F" /grant "BUILTIN\Administrators:F"
 
-# 3. Tâche planifiée "KopiaServer" (démarre Kopia détaché, sans fenêtre)
+# 3. Tâche planifiée "KopiaServer" (démarrage session + certificat figé)
 schtasks /Create /TN "KopiaServer" /RU $env:USERNAME `
   /TR "'C:\Users\Emmanuel\AppData\Local\Programs\KopiaUI\resources\server\kopia.exe' server start --address=0.0.0.0:51515" `
   /SC ONLOGON /RL HIGHEST /F
