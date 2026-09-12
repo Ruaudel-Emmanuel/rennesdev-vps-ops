@@ -1,0 +1,9 @@
+[Unit]
+Description=Rappel Telegram sauvegarde — chaque dimanche 12:00
+
+[Timer]
+OnCalendar=Sun *-*-* 12:00:00 Europe/Paris
+Persistent=true
+
+[Install]
+WantedBy=timers.target

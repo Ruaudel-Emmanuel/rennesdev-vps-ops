@@ -1,0 +1,15 @@
+[Unit]
+Description=Bot Telegram de contrôle VPS (/backup, /status)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=HOME=/root
+EnvironmentFile=/etc/vps-watchdog-telegram.env
+ExecStart=/usr/bin/python3 /usr/local/bin/vps-tgbot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

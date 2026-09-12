@@ -1,0 +1,7 @@
+[Unit]
+Description=Watchdog VPS (disque, RAM, conteneurs, HTTPS, backup Kopia)
+
+[Service]
+Type=oneshot
+Environment=HOME=/root
+ExecStart=/usr/local/bin/vps-watchdog.sh

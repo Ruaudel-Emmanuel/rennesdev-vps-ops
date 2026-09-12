@@ -1,0 +1,12 @@
+[Unit]
+Description=Sauvegarde Kopia VPS -> PC fixe (staging + snapshots)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# systemd ne définit pas HOME -> kopia ne trouve pas /root/.config/kopia sinon
+Environment=HOME=/root
+ExecStart=/usr/local/bin/kopia-backup.sh
+# Laisse jusqu'à 6h (les 1ers snapshots peuvent être longs via le réseau)
+TimeoutStartSec=21600

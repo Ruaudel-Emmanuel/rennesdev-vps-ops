@@ -1,0 +1,10 @@
+[Unit]
+Description=Sauvegarde Kopia hebdomadaire (dimanche 19:30)
+
+[Timer]
+OnCalendar=Sun *-*-* 19:30:00 Europe/Paris
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
