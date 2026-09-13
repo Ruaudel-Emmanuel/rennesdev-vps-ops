@@ -37,11 +37,24 @@ if [ "$CODE" != "200" ]; then
     || { echo "ERREUR: création du repo impossible"; exit 13; }
 fi
 
-# --- 3. Clone si besoin ---
+# --- 3. Clone / attachement git ---
+# ⚠️ ne JAMAIS effacer des fichiers existants : si le dossier contient déjà des fichiers,
+# on clone à côté et on attache le .git au dossier existant.
+CLEAN_URL="https://github.com/${LOGIN}/${REPO}.git"
+AUTH_URL="https://x-access-token:${TOKEN}@github.com/${LOGIN}/${REPO}.git"
 if [ ! -d "$DIR/.git" ]; then
-  rm -rf "$DIR"
-  git clone --quiet "https://github.com/$LOGIN/$REPO.git" "$DIR"
-  echo "Repo cloné dans $DIR"
+  if [ -d "$DIR" ] && [ -n "$(ls -A "$DIR" 2>/dev/null)" ]; then
+    git clone --quiet "$AUTH_URL" "$DIR.tmp"
+    git -C "$DIR.tmp" remote set-url origin "$CLEAN_URL"
+    mv "$DIR.tmp/.git" "$DIR/.git"
+    rm -rf "$DIR.tmp"
+    echo "Git attaché aux fichiers existants de $DIR"
+  else
+    rm -rf "$DIR" "$DIR.tmp"
+    git clone --quiet "$AUTH_URL" "$DIR"
+    git -C "$DIR" remote set-url origin "$CLEAN_URL"
+    echo "Repo cloné dans $DIR"
+  fi
 fi
 
 cd "$DIR"
@@ -51,7 +64,12 @@ git config user.email "$LOGIN@users.noreply.github.com"
 # --- 4. Commit ---
 git add -A
 if git diff --cached --quiet; then
-  echo "Aucun changement à committer — push de synchronisation."
+  if git rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
+    echo "Aucun changement à committer — push de synchronisation."
+  else
+    git commit --quiet --allow-empty -m "Initial commit"
+    echo "Commit initial (repo vierge)."
+  fi
 else
   [ -n "$MSG" ] || MSG="Mise à jour depuis le VPS ($(date '+%F %T'))"
   git commit --quiet -m "$MSG"
@@ -62,8 +80,7 @@ git remote remove origin 2>/dev/null || true
 git remote add origin "https://github.com/$LOGIN/$REPO.git"
 
 # --- 5. Push (token transient, jamais persisté dans .git/config) ---
-PUSH_URL="https://x-access-token:${TOKEN}@github.com/${LOGIN}/${REPO}.git"
-if OUT=$(GIT_TERMINAL_PROMPT=0 git push --quiet "$PUSH_URL" "HEAD:refs/heads/$BRANCH" 2>&1); then
+if OUT=$(GIT_TERMINAL_PROMPT=0 git push --quiet "$AUTH_URL" "HEAD:refs/heads/$BRANCH" 2>&1); then
   echo "✅ Poussé vers $LOGIN/$REPO (branche $BRANCH)"
 else
   echo "ERREUR push :"
