@@ -4,19 +4,21 @@ Workflow **clé en main mais désactivé** : même architecture que « Diffusion
 (voir `../diffusion-actus-discord/`), décliné pour les flux photos de la base Airtable
 **« rss photo »**. Couleur d'embed **violette** pour le distinguer des actus (vertes).
 
-## ⚠️ Placeholders à remplacer (phase 2) — dans le nœud « Diffusion Photos »
+## ⚠️ Secrets (déjà remplacés par l'utilisateur dans n8n — phase 2 faite le 2026-09-14)
 
-| Placeholder | À remplacer par |
-|---|---|
-| `AIRTABLE_TOKEN_PLACEHOLDER` | Personal Access Token Airtable ayant accès à la base « rss photo » |
-| `BASE_ID_PLACEHOLDER` | ID de la base « rss photo » (`app…`) |
-| `FEEDS_TABLE_ID_PLACEHOLDER` | ID de la table des flux (`tbl…`) |
-| `PHOTOS_TABLE_ID_PLACEHOLDER` | ID de la table de marquage (`tbl…`) |
-| `DISCORD_WEBHOOK_PLACEHOLDER` | Webhook par défaut (utilisé si un flux n'a pas de salon) |
+Le workflow est **actif et testé**. Ce repo contient l'export avec placeholders pour réimport.
 
-Le bloc `CONFIG.champsFlux` / `CONFIG.champsPhotos` contient les **noms de champs** Airtable
-(`Name`, `URL source rss`, `Salon discord` / `Lien`, `Sources`, `Titres`, `Sommaire`,
-`Date publication`, `Salon Discord`) — adapte-les si ta base « rss photo » utilise d'autres noms.
+## Base réelle utilisée
+
+- Base « RSS Photo » (`appLn9VCOlsdLdp1U`), table des flux « Table 1 » (`tblHHzzA0AR8tHlZi`) :
+  champs `Name`, `site web`, `rss` (URL du flux) — pas de champ salon → webhook par défaut du CONFIG
+- Table de marquage « Photos envoyées » (`tblnovgnUfrGiK6zH`) créée par l'assistant
+  (7 champs : Lien, Sources, Titres, Sommaire, Date publication, Salon Discord, Image) —
+  a nécessité l'ajout du scope `schema.bases:write` au token
+- 4 flux : phototrend.fr, argentique.net, danstacuve.org, benber.fr
+
+💡 **Conseil** : remplir la colonne `Name` des 4 flux dans Airtable (vide actuellement →
+« flux sans nom » apparaît en footer des embeds Discord).
 
 ## Fonctionnement (identique à Diffusion Actus)
 
@@ -29,9 +31,11 @@ Le bloc `CONFIG.champsFlux` / `CONFIG.champsPhotos` contient les **noms de champ
 6. Marquage dans la table de marquage
 7. Anti-flood : 5 max/flux/run ; rate-limiting 250-400 ms ; flux en erreur n'interrompent pas les autres
 
-## Phase 2 (à faire par l'utilisateur puis l'assistant)
+## Phase 2 (fait le 2026-09-14)
 
-1. L'utilisateur remplace les placeholders dans l'éditeur n8n et **active** le workflow
-2. L'assistant teste (cron temporaire → vérification exécution + Discord + Airtable)
-3. Le token Airtable doit avoir accès à la base « rss photo » (éditer le token sur
-   airtable.com/create/tokens → Access → ajouter la base)
+1. ✅ Utilisateur : placeholders remplacés dans l'éditeur + workflow activé
+2. ✅ Assistant : IDs réels découverts via le token (l'utilisateur avait mis des noms lisibles),
+   table « Photos envoyées » créée via API (après ajout du scope `schema.bases:write`),
+   corrections (virgule avalée par un commentaire → SyntaxError, décodage entités numériques,
+   champ Image écrit dans Airtable), test réel : exécution #55 success, 15 photos envoyées + marquées
+3. Anti-flood premier passage : 5 photos max/flux ; le run 19:11 UTC a envoyé les plus récentes
