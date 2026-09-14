@@ -12,7 +12,7 @@
 - **Rotation du journal** : historique → `ETAT-VPS-archive-2026-09.md`, ce fichier réécrit (5,5 Ko vs 54 Ko).
 - **Méthode push GitHub validée** : PAT extrait de la base n8n en variable shell, jamais en session (doc `docs/push-github.md`).
 - Tout est vert (skill vps-sante exit 0).
-- **Vhost Caddy netdata.rennersdev.fr + basic auth créé (2e session)** : mot de passe fort généré (24 car., bcrypt via `caddy hash-password`), credentials dans `/etc/caddy/netdata-auth.txt` (root 600, inclus dans le snapshot /etc/caddy). Config validée + reload OK. **Bloqué sur DNS** : aucun enregistrement `netdata` dans Cloudflare (NXDOMAIN côté Let's Encrypt, cert non émis — Caddy re-essaie automatiquement). En attente utilisateur : créer l'enregistrement `netdata` A proxie orange dans Cloudflare.
+- **Vhost Caddy netdata.rennersdev.fr + basic auth créé (2e session)** : mot de passe fort généré (24 car., bcrypt via `caddy hash-password`), credentials dans `/etc/caddy/netdata-auth.txt` (root 600, inclus dans le snapshot /etc/caddy). Config validée + reload OK. DNS créé par l'utilisateur (record A proxie orange) → **cert Let's Encrypt émis automatiquement par Caddy** (expire 2026-12-13, renouvellement auto). **Validation complète** : origine 401 sans auth / 200 avec auth ; edge 401 / 200. Dashboard accessible sur https://netdata.rennesdev.fr (identifiants dans le fichier root-only).
 
 ---
 
@@ -28,7 +28,7 @@
 | Umami | `umami_app` (127.0.0.1:3000) + `umami_db` (PG 16) — stack `~/umami/`, creds `~/umami/.credentials.txt` |
 | n8n | `n8n_workflow` (127.0.0.1:5678) + `n8n_db` (**PostgreSQL 17**) — `~/docker-compose.yml`, mdp dans `~/.env` (`N8N_DB_PASSWORD`) |
 | Ollama | `ollama` (127.0.0.1:11434), réseau Docker `apps` — modèles : `qwen2.5:7b` (bot IA), `llama3.2:3b`, `qwen2.5:3b`. `OLLAMA_KEEP_ALIVE=30m` |
-| Netdata | `netdata`, UI **127.0.0.1:19999** (jamais exposé) — `~/netdata/docker-compose.yml` |
+| Netdata | `netdata`, UI **127.0.0.1:19999** + **https://netdata.rennesdev.fr** (basic auth, credentials `/etc/caddy/netdata-auth.txt` root 600) — `~/netdata/docker-compose.yml` |
 | Bot contrôle | `vps-tgbot.service` → `/usr/local/bin/vps-tgbot.py` (long polling) : `/backup`, `/status`, `/ordres`, `/ok`, `/help` |
 | Bot IA | Workflow n8n « Agent Telegram » (bot dédié) : Telegram → Filter chat.id → Ollama qwen2.5:7b + PG Chat Memory → réponse |
 | Sécurité | UFW (22/80/443), fail2ban (sshd + recidive), SSH par clé uniquement, `passwordauthentication=no` |
@@ -61,8 +61,7 @@
 8. **Rapport quotidien 08:00 Paris** sur Telegram (`vps-metrics-report.timer`) — vérifier dans le contrôle santé qu'il est actif.
 
 ## ⏳ En attente (actions utilisateur)
-- **DNS Cloudflare** : créer l'enregistrement `netdata` → A (proxy orange) pour acter https://netdata.rennesdev.fr (vhost Caddy + basic auth déjà en place ; Caddy re-tente le cert tout seul → rien à faire côté VPS une fois le DNS créé). Credentials : `/etc/caddy/netdata-auth.txt` (root 600) — **emmanuel** / mdp 24 caractères.
-- (Optionnel, remplacé par le vhost) ~~tunnel SSH pour netdata~~.
+- **Aucun point en attente.**
 
 ## 🔎 Vérifications rapides utiles
 ```bash
