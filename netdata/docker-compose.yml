@@ -1,0 +1,37 @@
+# Netdata — supervision temps réel du VPS rennesdev.fr
+# UI : 127.0.0.1:19999 (accès via tunnel SSH uniquement, jamais exposé)
+# Démarrage : docker compose up -d   |   Docs : rennesdev-vps-ops/docs/netdata.md
+services:
+  netdata:
+    image: netdata/netdata:latest
+    container_name: netdata
+    hostname: vps-5532a57a
+    restart: unless-stopped
+    pid: host                     # métriques des processus hôtes
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    ports:
+      - "127.0.0.1:19999:19999"   # localhost only — pas de port ouvert UFW
+    environment:
+      - DISABLE_TELEMETRY=1
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /:/host/root:ro,rslave        # disques, /home, /etc côté hôte (lecture seule)
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro   # métriques des conteneurs
+    tmpfs:
+      - /opt/netdata/var/lib/netdata/cloud
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:
