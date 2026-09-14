@@ -2,11 +2,16 @@
 
 Assistant IA conversationnel sur Telegram, **100 % auto-hébergé** : n8n orchestre, Ollama fait l'inférence en local sur le VPS, la mémoire de conversation est persistée en PostgreSQL.
 
+**+ Rapport GitHub quotidien à 07h00** (depuis le 2026-09-14) : le workflow a deux déclencheurs — chaque matin, il interroge l'API GitHub et envoie un résumé des projets.
+
 ```
 Telegram (bot dédié) ──► [Chat autorisé ?] ──► AI Agent ──► Telegram (réponse)
                                               │
                           Ollama qwen2.5:7b ──┤
                           Postgres Chat Memory┘
+
+[Horloge 07h00] ──► [GitHub — mes repos] ──► [Prépare le résumé] ──► AI Agent
+                       (API + PAT)              (code node)
 ```
 
 ## Architecture
@@ -19,6 +24,11 @@ Telegram (bot dédié) ──► [Chat autorisé ?] ──► AI Agent ──►
 | **Ollama Chat Model** | LLM | `qwen2.5:7b` (4,7 Go) via `http://ollama:11434` (réseau Docker `apps`) |
 | **Postgres Chat Memory** | Mémoire | Historique persistant en base `n8n` (table `n8n_chat_histories`), clé de session = `chat.id` |
 | **Send a text message** | Réponse | `{{ $json.output }}` vers le chat autorisé |
+| **Horloge GitHub (07h00)** | Déclencheur 2 | Cron `0 7 * * *`, timezone `Europe/Paris` (dans les settings du workflow) |
+| **GitHub — mes repos** | HTTP Request | `GET https://api.github.com/user/repos?sort=pushed&per_page=30` + header `Authorization: Bearer <PAT>` (fine-grained, stocké dans le nœud — **placeholder dans l'export**) |
+| **Prépare le résumé** | Code | Compacte la liste des repos (nom, privé/public, âge du dernier push, description) en un texte pour l'agent |
+
+**Adaptation du chemin commun** : le prompt de l'agent devient `{{ $json.message ? $json.message.text : $json.resume }}` et la clé mémoire `{{ $json.message ? $json.message.chat.id : 'github-daily' }}` — ainsi le même agent sert la conversation Telegram (mémoire liée au chat) et le rapport du matin (mémoire dédiée `github-daily`).
 
 ## Installation
 
