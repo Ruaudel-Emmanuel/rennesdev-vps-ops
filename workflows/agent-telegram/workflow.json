@@ -20,13 +20,13 @@
     "name": "AI Agent",
     "type": "@n8n/n8n-nodes-langchain.agent",
     "position": [
-      208,
+      272,
       0
     ],
     "parameters": {
       "text": "={{ $json.message ? $json.message.text : $json.resume }}",
       "options": {
-        "systemMessage": "Tu es l'assistant IA personnel d'Emmanuel, hébergé sur son serveur rennesdev.fr. Réponds toujours en français, de façon claire et concise. Si un message contient un état de ses repos GitHub (rapport du matin), rédige un bref récapitulatif de ses projets : repos actifs récemment (mets-les en avant), ceux qui dorment depuis longtemps, et une phrase d'encouragement."
+        "systemMessage": "Tu es l'assistant IA personnel d'Emmanuel, hébergé sur son serveur rennesdev.fr. Réponds toujours en français, de façon claire et concise. Si un message contient un état de ses repos GitHub (rapport du matin), rédige un bref récapitulatif : repos actifs récemment (mets-les en avant), ceux qui dorment depuis longtemps, une phrase d'encouragement. Termine par une section « 💡 Conseils » avec 2 à 3 recommandations concrètes MAXIMUM, basées sur les signaux fournis (description manquante, repo dormant à archiver, régularité des commits, documentation, nommage). Pas plus de 3 conseils, sois bref et actionnable."
       },
       "promptType": "define"
     },
@@ -37,8 +37,8 @@
     "name": "Ollama Chat Model",
     "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
     "position": [
-      96,
-      208
+      272,
+      320
     ],
     "parameters": {
       "model": "qwen2.5:7b",
@@ -51,7 +51,7 @@
     "name": "Send a text message",
     "type": "n8n-nodes-base.telegram",
     "position": [
-      576,
+      640,
       0
     ],
     "parameters": {
@@ -66,8 +66,8 @@
     "name": "Postgres Chat Memory",
     "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
     "position": [
-      288,
-      224
+      432,
+      320
     ],
     "parameters": {
       "sessionKey": "={{ $json.message ? $json.message.chat.id : 'github-daily' }}",
@@ -112,7 +112,7 @@
     "name": "Horloge GitHub (07h00)",
     "type": "n8n-nodes-base.scheduleTrigger",
     "position": [
-      -450,
+      -448,
       400
     ],
     "parameters": {
@@ -132,7 +132,7 @@
     "name": "GitHub — mes repos",
     "type": "n8n-nodes-base.httpRequest",
     "position": [
-      -220,
+      -224,
       400
     ],
     "parameters": {
@@ -167,7 +167,7 @@
       400
     ],
     "parameters": {
-      "jsCode": "const repos = $input.all().map(i => i.json);\nconst aujourdhui = Date.now();\nconst lignes = repos.map(r => {\n  const jours = Math.floor((aujourdhui - new Date(r.pushed_at).getTime()) / 86400000);\n  const age = jours <= 0 ? \"aujourd'hui\" : jours === 1 ? \"hier\" : `il y a ${jours} jours`;\n  return `- ${r.name} (${r.private ? \"privé\" : \"public\"}) — dernier push ${age}${r.description ? \" — \" + r.description : \"\"}`;\n});\nreturn [{ json: { resume: `Repos GitHub d'Emmanuel (total : ${repos.length}) :\\n\\n${lignes.join(\"\\n\")}` } }];"
+      "jsCode": "const repos = $input.all().map(i => i.json);\nconst now = Date.now();\nconst J = 86400000;\nconst lignes = repos.map(r => {\n  const jours = Math.floor((now - new Date(r.pushed_at).getTime()) / J);\n  const age = jours <= 0 ? \"aujourd'hui\" : jours === 1 ? \"hier\" : `il y a ${jours} jours`;\n  return `- ${r.name} (${r.private ? \"privé\" : \"public\"}) — dernier push ${age}${r.description ? \" — \" + r.description : \"\"}`;\n});\nconst sansDesc = repos.filter(r => !r.description).map(r => r.name);\nconst dormants = repos.filter(r => !r.archived && (now - new Date(r.pushed_at).getTime()) > 60 * J).map(r => r.name);\nconst notes = [];\nif (sansDesc.length) notes.push(`sans description : ${sansDesc.join(\", \")}`);\nif (dormants.length) notes.push(`dormants (plus de 60 jours) : ${dormants.join(\", \")}`);\nif (!notes.length) notes.push(\"tous les repos ont une description et une activité correcte\");\nreturn [{ json: { resume: `Repos GitHub d'Emmanuel (total : ${repos.length}) :\\n\\n${lignes.join(\"\\n\")}\\n\\nSignaux : ${notes.join(\"; \")}` } }];"
     },
     "typeVersion": 2
   }
