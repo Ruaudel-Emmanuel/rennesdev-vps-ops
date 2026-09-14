@@ -46,6 +46,33 @@ Réponse : `{"exitCode":0,"stderr":"","stdout":"... ✅ Poussé vers <owner>/<re
 ⚠️ Le header `X-Auth-Token` doit contenir la **même valeur** que le champ `github_token`
 du nœud Config. Le plus simple : utiliser le PAT lui-même comme authentifiant du webhook.
 
+### ✅ Méthode validée le 2026-09-14 — PAT jamais en session
+
+Le PAT est extrait de la base n8n **directement dans une variable shell**, utilisée par le
+curl et jamais affichée ni écrite sur disque (le PAT ne transite donc jamais en session
+ni dans le journal) :
+
+```bash
+TOKEN=$(docker exec n8n_db psql -U n8n -d n8n -t -A -c \
+  "SELECT nodes FROM workflow_entity WHERE name = 'Push GitHub'" | python3 -c "
+import json,sys
+nodes=json.load(sys.stdin)
+tok=''
+for n in nodes:
+    if n.get('name')=='Config (PAT GitHub)':
+        for it in n['parameters']['assignments'].get('assignments',[]):
+            v=it.get('value','')
+            if isinstance(v,str) and len(v)>20: tok=v
+print(tok)
+")
+curl -s -X POST https://n8n.rennesdev.fr/webhook/github-push \
+  -H 'Content-Type: application/json' -H "X-Auth-Token: $TOKEN" \
+  -d '{"repo":"...","path":"...","message":"...","branch":"main","private":true}'
+```
+
+(Le format n8n Set v3 : `parameters.assignments.assignments` = liste de
+`{name, type, value}` — le token est la valeur de plus de 20 caractères.)
+
 ## Sécurité — à savoir
 
 - Le PAT est stocké dans les **paramètres du workflow** (base PostgreSQL n8n, volume
