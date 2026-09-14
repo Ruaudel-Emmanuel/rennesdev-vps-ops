@@ -11,7 +11,8 @@
 - **Skill `vps-sante` créé** (`~/.agents/skills/vps-sante/`) : contrôle de santé standardisé, script exit 0/1, tout vert au test.
 - **Rotation du journal** : historique → `ETAT-VPS-archive-2026-09.md`, ce fichier réécrit (5,5 Ko vs 54 Ko).
 - **Méthode push GitHub validée** : PAT extrait de la base n8n en variable shell, jamais en session (doc `docs/push-github.md`).
-- Tout est vert (skill vps-sante exit 0). En attente utilisateur : rien.
+- Tout est vert (skill vps-sante exit 0).
+- **Vhost Caddy netdata.rennersdev.fr + basic auth créé (2e session)** : mot de passe fort généré (24 car., bcrypt via `caddy hash-password`), credentials dans `/etc/caddy/netdata-auth.txt` (root 600, inclus dans le snapshot /etc/caddy). Config validée + reload OK. **Bloqué sur DNS** : aucun enregistrement `netdata` dans Cloudflare (NXDOMAIN côté Let's Encrypt, cert non émis — Caddy re-essaie automatiquement). En attente utilisateur : créer l'enregistrement `netdata` A proxie orange dans Cloudflare.
 
 ---
 
@@ -60,7 +61,8 @@
 8. **Rapport quotidien 08:00 Paris** sur Telegram (`vps-metrics-report.timer`) — vérifier dans le contrôle santé qu'il est actif.
 
 ## ⏳ En attente (actions utilisateur)
-- (Optionnel) Accès au dashboard Netdata depuis le PC : tunnel SSH `ssh -L 19999:127.0.0.1:19999 ubuntu@162.19.246.165` puis `http://localhost:19999`. Alternative possible sur demande : vhost Caddy avec basic auth.
+- **DNS Cloudflare** : créer l'enregistrement `netdata` → A (proxy orange) pour acter https://netdata.rennesdev.fr (vhost Caddy + basic auth déjà en place ; Caddy re-tente le cert tout seul → rien à faire côté VPS une fois le DNS créé). Credentials : `/etc/caddy/netdata-auth.txt` (root 600) — **emmanuel** / mdp 24 caractères.
+- (Optionnel, remplacé par le vhost) ~~tunnel SSH pour netdata~~.
 
 ## 🔎 Vérifications rapides utiles
 ```bash
