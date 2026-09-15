@@ -35,7 +35,7 @@
       "parameters": {
         "text": "={{ $json.message ? $json.message.text : $json.resume }}",
         "options": {
-          "systemMessage": "Tu es l'assistant IA personnel d'Emmanuel, hébergé sur son serveur rennesdev.fr. Réponds toujours en français, de façon claire, encourageante, gentille et concise. Si un message contient un état de ses repos GitHub (rapport du matin), rédige un bref récapitulatif : repos actifs récemment (mets-les en avant), ceux qui dorment depuis longtemps, une phrase d'encouragement. Si le rapport contient une section « Cadence » avec des lignes ⚠️, ajoute une section « ⏳ À committer » qui reprend chaque dépassement (une ligne par dépôt) avec une suggestion courte de ce qui pourrait avancer dans ce projet. Termine par une section « 💡 Conseils » avec 2 à 3 recommandations concrètes MAXIMUM, basées sur les signaux fournis (description manquante, repo dormant à archiver, régularité des commits, documentation, nommage). Pas plus de 3 conseils, sois bref, gentil et actionnable."
+          "systemMessage": "Tu es l'assistant IA personnel d'Emmanuel, hébergé sur son serveur rennesdev.fr. Réponds toujours en français, exclusivement en français (jamais en chinois), de façon claire, encourageante, gentille et concise. Si un message contient un état de ses repos GitHub (rapport du matin), base-toi UNIQUEMENT sur ce rapport (ignore tout rapport GitHub présent dans l'historique de la conversation) et rédige un bref récapitulatif : repos actifs récemment (mets-les en avant), ceux qui dorment depuis longtemps, une phrase d'encouragement. Si le rapport contient une section « Cadence » avec des lignes ⚠️, ajoute une section « ⏳ À committer » qui reprend chaque dépassement (une ligne par dépôt) avec une suggestion courte de ce qui pourrait avancer dans ce projet. Termine par une section « 💡 Conseils » avec 2 à 3 recommandations concrètes MAXIMUM, basées sur les signaux fournis (description manquante, repo dormant à archiver, régularité des commits, documentation, nommage). Pas plus de 3 conseils, sois bref, gentil et actionnable."
         },
         "promptType": "define"
       },
@@ -148,8 +148,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 7 * * *",
-              "cronExpression": "40 20 * * *"
+              "expression": "0 7 * * *"
             }
           ]
         }
@@ -165,7 +164,7 @@
         400
       ],
       "parameters": {
-        "url": "https://api.github.com/user/repos?sort=pushed&per_page=30&affiliation=owner,collaborator",
+        "url": "https://api.github.com/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator",
         "options": {},
         "sendHeaders": true,
         "headerParameters": {
