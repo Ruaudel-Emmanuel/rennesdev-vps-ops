@@ -27,7 +27,7 @@ MEM=$(free | awk '/Mem:/{printf "%d", $3/$2*100}')
 [ "${MEM:-0}" -ge 90 ] && alert "RAM: ${MEM}% utilisée"
 
 # 3. Conteneurs Docker attendus
-for c in n8n_workflow umami_app umami_db ollama; do
+for c in n8n_workflow n8n_db umami_app umami_db ollama netdata; do
     state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null)
     if [ "$state" != "running" ]; then
         alert "Conteneur $c: statut=${state:-introuvable}"
@@ -40,18 +40,22 @@ for u in umami.rennesdev.fr n8n.rennesdev.fr; do
     [ "$code" != "200" ] && alert "HTTPS $u -> code $code"
 done
 
-# 5. Dépôt Kopia connecté ?
-if ! kopia repo status &>/dev/null; then
-    alert "Dépôt Kopia NON CONNECTÉ (vérifier le serveur Kopia sur le PC)"
-else
-    # 6. Dernier snapshot de plus de 9 jours ?
-    LAST_TS=$(kopia snapshot list --all 2>/dev/null | grep -oE '20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' | sort | tail -1)
-    if [ -n "$LAST_TS" ]; then
-        LAST_EPOCH=$(date -d "$LAST_TS UTC" +%s 2>/dev/null || echo 0)
-        AGE_D=$(( (NOW - LAST_EPOCH) / 86400 ))
-        [ "$AGE_D" -ge 9 ] && alert "Dernier snapshot Kopia il y a ${AGE_D} jours (PC éteint ? serveur Kopia arrêté ?)"
+# 5/6. Kopia : alertes UNIQUEMENT si le PC (serveur Kopia) est joignable.
+# PC fermé = situation normale (nuit, week-end) -> aucune alerte Kopia.
+PC_OPEN=0
+timeout 5 bash -c 'echo > /dev/tcp/100.118.76.30/51515' 2>/dev/null && PC_OPEN=1
+if [ "$PC_OPEN" = "1" ]; then
+    if ! kopia repo status &>/dev/null; then
+        alert "Dépôt Kopia NON CONNECTÉ alors que le PC est allumé (serveur Kopia arrêté ?)"
     else
-        alert "Aucun snapshot Kopia trouvé"
+        LAST_TS=$(kopia snapshot list --all 2>/dev/null | grep -oE '20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' | sort | tail -1)
+        if [ -n "$LAST_TS" ]; then
+            LAST_EPOCH=$(date -d "$LAST_TS UTC" +%s 2>/dev/null || echo 0)
+            AGE_D=$(( (NOW - LAST_EPOCH) / 86400 ))
+            [ "$AGE_D" -ge 9 ] && alert "Dernier snapshot Kopia il y a ${AGE_D} jours (PC allumé mais pas de backup)"
+        else
+            alert "Aucun snapshot Kopia trouvé"
+        fi
     fi
 fi
 
