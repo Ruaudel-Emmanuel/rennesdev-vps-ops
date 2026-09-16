@@ -22,7 +22,7 @@ Le workflow est **actif et testé**. Ce repo contient l'export avec placeholders
 
 ## Fonctionnement (identique à Diffusion Actus)
 
-1. Toutes les 30 min (cron `*/30 * * * *`, Europe/Paris) : lecture des flux dans Airtable
+1. Toutes les 30 min (cron `30 9,15,21 * * *`, Europe/Paris) : lecture des flux dans Airtable
 2. Téléchargement + parsing RSS/Atom, tri du plus récent au plus ancien
 3. Dédup : article déjà dans la table de marquage (clé = `Lien`) → ignoré
 4. Image extraite du flux (`media:content`, `media:thumbnail`, `enclosure`, 1re `<img>`)
