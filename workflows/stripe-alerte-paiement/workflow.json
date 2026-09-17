@@ -1,0 +1,86 @@
+{
+  "name": "stripe-alerte-paiement",
+  "nodes": [
+    {
+      "id": "00000000-stripe-4000-8000-000000000001",
+      "name": "Stripe — réception paiement",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-paiement",
+        "options": {}
+      },
+      "webhookId": "f33ff361-f927-43a0-9a15-0b56d6626d16"
+    },
+    {
+      "id": "00000000-stripe-4000-8000-000000000002",
+      "name": "Formate l'alerte paiement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// ===== Alerte paiement Stripe → Telegram =====\n// Reçoit les webhooks Stripe et envoie une alerte sur la conversation Telegram.\n// À faire côté utilisateur :\n//  1. Dans le dashboard Stripe → Développeurs → Webhooks → Ajouter un endpoint :\n//     URL de production : https://n8n.rennesdev.fr/webhook/stripe-paiement\n//     Événements : checkout.session.completed, payment_intent.succeeded, invoice.payment_succeeded\n//  2. Copier la \"clé de signature du endpoint\" (whsec_...) dans CONFIG.webhookSecret ci-dessous.\n//     Tant que ce secret est vide, la signature n'est PAS vérifiée (⚠️ affiché dans le message).\nconst CONFIG = {\n  webhookSecret: '', // ex: 'whsec_xxxxxxxx' — clé de signature du webhook Stripe\n};\n\n// crypto peut être indisponible selon la config n8n → dégradation silencieuse\nlet crypto = null;\ntry { crypto = require('crypto'); } catch { /* non bloquant */ }\n\nconst rawHeaders = $json.headers || {};\nconst headers = {};\nfor (const [k, v] of Object.entries(rawHeaders)) headers[k.toLowerCase()] = v;\nconst sigHeader = headers['stripe-signature'];\n\n// --- vérification optionnelle de la signature Stripe ---\nlet sigOk = null; // null = non vérifiée (secret manquant), true/false = résultat\nif (CONFIG.webhookSecret && crypto && sigHeader) {\n  const parties = Object.fromEntries(sigHeader.split(',').map((p) => p.split('=')));\n  if (parties.t && parties.v1) {\n    const hmac = crypto.createHmac('sha256', CONFIG.webhookSecret)\n      .update(`${parties.t}.${JSON.stringify($json.body)}`)\n      .digest('hex');\n    sigOk = hmac === parties.v1;\n  } else {\n    sigOk = false;\n  }\n}\n\nconst body = $json.body || {};\nconst type = body.type || 'type inconnu';\n\nconst EVENEMENTS_PAIEMENT = [\n  'checkout.session.completed',\n  'payment_intent.succeeded',\n  'invoice.payment_succeeded',\n  'charge.succeeded',\n];\nif (!EVENEMENTS_PAIEMENT.includes(type)) {\n  return [{ json: { skip: true, text: null } }];\n}\n\nconst d = body.data && body.data.object ? body.data.object : {};\nlet montant = '', devise = '', client = '';\nif (type === 'checkout.session.completed') {\n  montant = ((d.amount_total || 0) / 100).toFixed(2);\n  devise = (d.currency || '').toUpperCase();\n  client = (d.customer_details && d.customer_details.email) || d.customer_email || '';\n} else if (type === 'invoice.payment_succeeded') {\n  montant = ((d.amount_paid || 0) / 100).toFixed(2);\n  devise = (d.currency || '').toUpperCase();\n  client = d.customer_email || '';\n} else if (type === 'payment_intent.succeeded' || type === 'charge.succeeded') {\n  montant = ((d.amount || 0) / 100).toFixed(2);\n  devise = (d.currency || '').toUpperCase();\n  client = (d.billing_details && d.billing_details.email) || d.receipt_email || '';\n}\n\nconst lignes = [`💳 Paiement Stripe reçu — ${montant} ${devise}`];\nlignes.push(`Événement : ${type}`);\nif (client) lignes.push(`Client : ${client}`);\nlignes.push(`Reçu le ${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`);\nif (sigOk === null) lignes.push('⚠️ Signature non vérifiée (secret webhook manquant dans le workflow)');\nelse if (sigOk === false) lignes.push('🚨 Signature Stripe INVALIDE — webhook possiblement falsifié');\n\nreturn [{ json: { text: lignes.join('\\n') } }];\n"
+      }
+    },
+    {
+      "id": "80e86a56-c88c-457f-b798-774fe283befe",
+      "name": "Telegram — alerte paiement",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "chatId": "8634051625",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "HMJozlOGjctgoQtt",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Stripe — réception paiement": {
+      "main": [
+        [
+          {
+            "node": "Formate l'alerte paiement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formate l'alerte paiement": {
+      "main": [
+        [
+          {
+            "node": "Telegram — alerte paiement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "pinData": {}
+}

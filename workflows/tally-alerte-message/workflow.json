@@ -1,0 +1,86 @@
+{
+  "name": "tally-alerte-message",
+  "nodes": [
+    {
+      "id": "00000000-tally-4000-8000-000000000001",
+      "name": "Tally — réception message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tally-alerte",
+        "options": {}
+      },
+      "webhookId": "26738da8-0be3-4742-a520-7ce87cb58839"
+    },
+    {
+      "id": "00000000-tally-4000-8000-000000000002",
+      "name": "Formate l'alerte Tally",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// ===== Alerte Tally → Telegram =====\n// Reçoit les webhooks Tally (formulaire WO26DL) et envoie une alerte simple.\n// À faire côté utilisateur :\n//  1. Dans Tally → Settings du formulaire → Webhooks → Ajouter :\n//     URL de production : https://n8n.rennesdev.fr/webhook/tally-alerte\n//  2. Plus tard : ajouter le lien vers l'application où le texte du client est stocké\n//     (constante LIEN_CLIENT ci-dessous, affichée dans le message dès qu'elle est remplie).\nconst CONFIG = {\n  LIEN_CLIENT: '', // à remplir plus tard : lien vers l'appli où est stocké le texte du client\n};\n\nconst body = $json.body || {};\nconst data = body.data || body || {};\nconst formName = data.formName || body.formName || 'Formulaire Tally';\nconst submissionId = data.submissionId || data.id || '';\n\n// Tally envoie les champs dans data.fields (label + value) — on les affiche s'ils existent\nlet detail = '';\nif (Array.isArray(data.fields)) {\n  const lignesChamps = data.fields\n    .map((f) => {\n      let val = f.value;\n      if (Array.isArray(val)) val = val.join(', ');\n      if (val === null || val === undefined || val === '') return null;\n      const label = f.label || f.id || '';\n      return `${label} : ${String(val).slice(0, 200)}`;\n    })\n    .filter(Boolean)\n    .slice(0, 8);\n  if (lignesChamps.length) detail = lignesChamps.join('\\n');\n}\n\nconst lignes = [`📩 Nouveau message via Tally — ${formName}`];\nif (submissionId) lignes.push(`Réponse : ${submissionId}`);\nif (detail) lignes.push('', detail);\nif (CONFIG.LIEN_CLIENT) lignes.push('', `➡️ ${CONFIG.LIEN_CLIENT}`);\nlignes.push(`Reçu le ${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`);\n\nreturn [{ json: { text: lignes.join('\\n') } }];\n"
+      }
+    },
+    {
+      "id": "6fd08841-a4b7-40b9-ac52-d743f864be47",
+      "name": "Telegram — alerte Tally",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "chatId": "8634051625",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "HMJozlOGjctgoQtt",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Tally — réception message": {
+      "main": [
+        [
+          {
+            "node": "Formate l'alerte Tally",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formate l'alerte Tally": {
+      "main": [
+        [
+          {
+            "node": "Telegram — alerte Tally",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "pinData": {}
+}
