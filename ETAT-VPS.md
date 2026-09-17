@@ -16,6 +16,10 @@
 - **Signature Tally câblée** (demande utilisateur) : en-tête `Tally-Signature`, HMAC-SHA256 sur `<t>.<payload>`, hexa ET base64 acceptés, secret dans `CONFIG.webhookSecret` (vide pour l'instant — l'utilisateur doit coller la clé Tally). `LIEN_CLIENT` déjà rempli par l'utilisateur. Test réel : alerte reçue avec aperçu des champs.
 - **Piège DB** : quand on insère le snapshot `workflow_history` avec `SELECT ... FROM workflow_entity`, il faut le faire APRÈS (ou avec les nouveaux nodes inline) sinon le snapshot prend les anciens nodes et l'exécution continue sur l'ancien code malgré `activeVersionId` à jour (2 tests ratés à cause de ça).
 - **Tally : signature opérationnelle** (testée : payload signé valide → aucune alerte 🚨 ; signature falsifiée → 🚨 Telegram). ⚠️ La clé de signature Tally n'a PAS le format Stripe : elle commence par `tly-` (pas `whsec_`) — mon premier script de test cherchait `whsec_` et signait avec un secret vide → faux « INVALIDE ». Bug corrigé au passage dans le code : `Digest already called` (objet HMAC réutilisé → 2 objets séparés). La clé a été collée par l'utilisateur dans `CONFIG.webhookSecret`.
+## 🆕 Dernière session — 2026-09-17 (4e partie)
+- **Nouveau repo privé `VPS-Rennesdev.fr`** (demande utilisateur) : journal de bord du VPS — `docs/applications.md` (inventaire applications + utilité), `jours/AAAA-MM-JJ.md` (résumé quotidien), README avec règles d'anonymat (⚠️ nom du repo contient le domaine, choix utilisateur ; contenu anonymisé).
+- **Journal quotidien automatique** : `/usr/local/bin/vps-daily-journal.sh` (root 700) + `vps-daily-journal.timer` **tous les jours 23h00 Europe/Paris**. Collecte : paquets APT installés/maj du jour (parse `/var/log/apt/history.log`), état Docker du soir + diff vs veille (`/var/lib/vps-journal/docker-state.txt`), fichiers modifiés dans `/usr/local/bin`, timers/services systemd touchés, connexions SSH + bans fail2ban, commits git locaux du jour → markdown → commit+push auto (PAT extrait de la base n8n en variable shell) → récap Telegram. **Testé en réel 3 runs** (fix parsing APT : `tr ','` coupait dans les parenthèses → premier champ + filtre fragments). 23h00 Paris = 21h00 UTC, timer confirmé.
+- Anonymat vérifié (grep : aucun secret/identifiant dans le contenu).
 ## Session — 2026-09-17 (3e partie)
 - **Nouveau workflow « Tally — alerte photographe Telegram »** (demande utilisateur) : formulaire Tally « Contact photographe - Emmanuel Ruaudel » (photographe de Rennesdev.fr). Webhook POST `/webhook/tally-photographe` → Code (message 📸 « Pour : le photographe de Rennesdev.fr », aperçu des champs, vérification de signature Tally câblée, `LIEN_CLIENT` placeholder vide) → Telegram (même chat). **Actif et testé** (alerte reçue). Reste utilisateur : webhook Tally du formulaire photographe → URL ci-dessus, coller la clé de signature (`tly-...`) de CE webhook, plus tard le `LIEN_CLIENT`.
 - **GitHub : nouveau token déployé partout + 3 PR créées 🎉** : l'utilisateur a généré un token fine-grained neuf (les 2 premiers collage étaient ratés : 1616 car. base64 puis un SHA-1 de 40 car. — vérifier que la chaîne commence par `github_pat_` ou `ghp_`). Token collé dans « Push GitHub » → nœud « Config (PAT GitHub) », puis propagé par l'assistant vers « GitHub — descriptions auto » (1 occurrence) et « Agent Telegram » (1 occurrence) via SQL, jamais affiché. **Test réel : run #271 → 3 PR ouvertes** (Fiscale-vps PR #3, surveillance-tarifaire, construction-site-tracker PR #1) sur les branches `deps/maj-auto-2026-09-17`. Fix cosmétique au passage (compteur « Branches sans PR » négatif). Cron restauré lundi 22h00.
@@ -93,6 +97,7 @@
 | `vps-backup` | dimanche 19:30 | backup Kopia complet (PC allumé requis) |
 | `vps-backup-reminder` | dimanche 12:00 | rappel Telegram (PC joignable ? dépôt ? âge snapshot) |
 | `github-weekly` | vendredi 19:00 | rapport hebdo GitHub → repo `git-ops-journal` + Telegram |
+| `vps-daily-journal` | tous les jours 23:00 | journal quotidien du VPS → repo `VPS-Rennesdev.fr` + Telegram |
 
 ## Backups (Kopia)
 - Chaîne : `vps-backup.timer` → `kopia-backup.sh` (staging = dump umami + pg_dump n8n + configs, puis snapshots : `/var/lib/docker/volumes`, `/home/ubuntu`, `/etc/caddy`) → **dépôt Kopia sur le PC Windows** (`super-pc-vert`, 100.118.76.30, port 51515, TLS cert RSA fixe, fingerprint `46d81925…`).
@@ -126,6 +131,7 @@ sudo fail2ban-client status sshd
 docker exec ollama ollama list
 curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19999     # 200 (netdata)
 systemctl list-timers github-weekly.timer --no-pager             # vendredi 19h00 Paris
+systemctl list-timers vps-daily-journal.timer --no-pager         # tous les jours 23h00 Paris
 ```
 
 ## Notes
