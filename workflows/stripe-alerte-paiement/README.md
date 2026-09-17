@@ -1,6 +1,14 @@
 # Stripe — alerte paiement Telegram
 
-Workflow **désactivé** en attente des clés Stripe (à saisir par l'utilisateur).
+## État (17/09) — EN PRODUCTION ✅
+
+- Workflow **actif**. Webhook Stripe créé par l'utilisateur (endpoint « Session conseil promo »).
+- Clé de signature `whsec_...` saisie par l'utilisateur dans `CONFIG.webhookSecret`.
+- **Vérification de signature Stripe opérationnelle** (testée : payload signé valide → pas d'alerte ; signature falsifiée → 🚨).
+- Test réel : payload `checkout.session.completed` montant 0 → alerte Telegram reçue.
+
+⚠️ Pour que `require('crypto')` fonctionne dans le nœud Code, le compose n8n contient
+`NODE_FUNCTION_ALLOW_BUILTIN=crypto` (le task runner n8n 2.x utilise cette variable, PAS `NODES_ALLOW_BUILTIN`).
 
 ## Fonctionnement
 

@@ -1,6 +1,11 @@
 # Tally — alerte message Telegram
 
-Workflow **désactivé** en attente de l'ajout du webhook côté Tally (à faire par l'utilisateur).
+## État (17/09) — EN PRODUCTION (signature à compléter)
+
+- Workflow **actif**. Webhook Tally créé par l'utilisateur (formulaire « Contact freelance - Emmanuel Ruaudel »).
+- `CONFIG.LIEN_CLIENT` renseigné (https://tally.so/r/WO26DL).
+- Test réel : alerte Telegram reçue avec aperçu des champs.
+- ⚠️ **Reste à faire** : coller la clé de signature du webhook Tally (`whsec_...`) dans `CONFIG.webhookSecret` du nœud « Formate l'alerte Tally » — la vérification est déjà câblée (en-tête `Tally-Signature`, HMAC-SHA256 sur `<t>.<payload>`, hexa et base64 acceptés). Tant que le secret est vide, la signature n'est pas vérifiée (aucune alerte ⚠️ affichée).
 
 ## Fonctionnement
 

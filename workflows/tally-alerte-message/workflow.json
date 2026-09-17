@@ -2,6 +2,11 @@
   "name": "tally-alerte-message",
   "nodes": [
     {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tally-alerte",
+        "options": {}
+      },
       "id": "00000000-tally-4000-8000-000000000001",
       "name": "Tally — réception message",
       "type": "n8n-nodes-base.webhook",
@@ -10,42 +15,38 @@
         0,
         0
       ],
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "tally-alerte",
-        "options": {}
-      },
       "webhookId": "26738da8-0be3-4742-a520-7ce87cb58839"
     },
     {
+      "parameters": {
+        "jsCode": "// ===== Alerte Tally → Telegram =====\n// Reçoit les webhooks Tally (formulaire WO26DL) et envoie une alerte simple.\n// À faire côté utilisateur :\n//  1. Dans Tally → Settings du formulaire → Webhooks → Ajouter :\n//     URL de production : https://n8n.rennesdev.fr/webhook/tally-alerte\n//  2. Plus tard : ajouter le lien vers l'application où le texte du client est stocké\n//     (constante LIEN_CLIENT ci-dessous, affichée dans le message dès qu'elle est remplie).\nconst CONFIG = {\n  LIEN_CLIENT: 'https://tally.so/r/WO26DL', // lien vers l'application où est stocké le texte du client\n  webhookSecret: '', // 🔑 coller ici la clé de signature du webhook Tally (whsec_...) pour activer la vérification\n};\n\n// crypto + en-têtes + signature Tally (en-tête \"Tally-Signature\", format t=...,v1=...)\nlet crypto = null;\ntry { crypto = require('crypto'); } catch { /* non bloquant */ }\nconst rawHeaders = $json.headers || {};\nconst headers = {};\nfor (const [k, v] of Object.entries(rawHeaders)) headers[k.toLowerCase()] = v;\nconst sigHeader = headers['tally-signature'] || headers['x-tally-signature'];\nconst bodyRaw = typeof $json.body === 'string' ? $json.body : null;\n\n// --- vérification de la signature Tally (HMAC-SHA256 sur \"<t>.<payload>\", hexa ou base64 acceptés) ---\nlet sigOk = null; // null = non vérifiée (secret manquant ou absent), true/false = résultat\nif (CONFIG.webhookSecret && crypto && sigHeader) {\n  const parties = Object.fromEntries(sigHeader.split(',').map((p) => p.split('=')));\n  if (parties.t && parties.v1) {\n    const candidats = [JSON.stringify($json.body), ...(bodyRaw ? [bodyRaw] : [])].filter(Boolean);\n    sigOk = candidats.some((c) => {\n      const base = `${parties.t}.${c}`;\n      const h = crypto.createHmac('sha256', CONFIG.webhookSecret);\n      const hex = h.update(base).digest('hex');\n      const b64 = h.update(base).digest('base64');\n      return hex === parties.v1 || b64 === parties.v1;\n    });\n  } else {\n    sigOk = false;\n  }\n}\n\nconst body = bodyRaw ? JSON.parse(bodyRaw) : ($json.body || {});\nconst data = body.data || body || {};\nconst formName = data.formName || body.formName || 'Formulaire Tally';\nconst submissionId = data.submissionId || data.id || '';\n\n// Tally envoie les champs dans data.fields (label + value) — on les affiche s'ils existent\nlet detail = '';\nif (Array.isArray(data.fields)) {\n  const lignesChamps = data.fields\n    .map((f) => {\n      let val = f.value;\n      if (Array.isArray(val)) val = val.join(', ');\n      if (val === null || val === undefined || val === '') return null;\n      const label = f.label || f.id || '';\n      return `${label} : ${String(val).slice(0, 200)}`;\n    })\n    .filter(Boolean)\n    .slice(0, 8);\n  if (lignesChamps.length) detail = lignesChamps.join('\\n');\n}\n\nconst lignes = [`📩 Nouveau message via Tally — ${formName}`];\nif (submissionId) lignes.push(`Réponse : ${submissionId}`);\nif (detail) lignes.push('', detail);\nif (CONFIG.LIEN_CLIENT) lignes.push('', `➡️ ${CONFIG.LIEN_CLIENT}`);\nlignes.push(`Reçu le ${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`);\nif (sigOk === null && CONFIG.webhookSecret) lignes.push('⚠️ Signature Tally absente du webhook');\nelse if (sigOk === false) lignes.push('🚨 Signature Tally INVALIDE — requête possiblement falsifiée');\n\nreturn [{ json: { text: lignes.join('\\n') } }];\n"
+      },
       "id": "00000000-tally-4000-8000-000000000002",
       "name": "Formate l'alerte Tally",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
+        224,
         0
-      ],
-      "parameters": {
-        "jsCode": "// ===== Alerte Tally → Telegram =====\n// Reçoit les webhooks Tally (formulaire WO26DL) et envoie une alerte simple.\n// À faire côté utilisateur :\n//  1. Dans Tally → Settings du formulaire → Webhooks → Ajouter :\n//     URL de production : https://n8n.rennesdev.fr/webhook/tally-alerte\n//  2. Plus tard : ajouter le lien vers l'application où le texte du client est stocké\n//     (constante LIEN_CLIENT ci-dessous, affichée dans le message dès qu'elle est remplie).\nconst CONFIG = {\n  LIEN_CLIENT: '', // à remplir plus tard : lien vers l'appli où est stocké le texte du client\n};\n\nconst body = $json.body || {};\nconst data = body.data || body || {};\nconst formName = data.formName || body.formName || 'Formulaire Tally';\nconst submissionId = data.submissionId || data.id || '';\n\n// Tally envoie les champs dans data.fields (label + value) — on les affiche s'ils existent\nlet detail = '';\nif (Array.isArray(data.fields)) {\n  const lignesChamps = data.fields\n    .map((f) => {\n      let val = f.value;\n      if (Array.isArray(val)) val = val.join(', ');\n      if (val === null || val === undefined || val === '') return null;\n      const label = f.label || f.id || '';\n      return `${label} : ${String(val).slice(0, 200)}`;\n    })\n    .filter(Boolean)\n    .slice(0, 8);\n  if (lignesChamps.length) detail = lignesChamps.join('\\n');\n}\n\nconst lignes = [`📩 Nouveau message via Tally — ${formName}`];\nif (submissionId) lignes.push(`Réponse : ${submissionId}`);\nif (detail) lignes.push('', detail);\nif (CONFIG.LIEN_CLIENT) lignes.push('', `➡️ ${CONFIG.LIEN_CLIENT}`);\nlignes.push(`Reçu le ${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`);\n\nreturn [{ json: { text: lignes.join('\\n') } }];\n"
-      }
+      ]
     },
     {
+      "parameters": {
+        "chatId": "8634051625",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
       "id": "6fd08841-a4b7-40b9-ac52-d743f864be47",
       "name": "Telegram — alerte Tally",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        440,
+        448,
         0
       ],
-      "parameters": {
-        "text": "={{ $json.text }}",
-        "chatId": "8634051625",
-        "additionalFields": {
-          "appendAttribution": false
-        }
-      },
+      "webhookId": "0b68f3d4-e9e0-410e-a178-c21f60dcb610",
       "credentials": {
         "telegramApi": {
           "id": "HMJozlOGjctgoQtt",
