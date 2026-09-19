@@ -5,6 +5,18 @@
 
 ---
 
+## 🆕 Dernière session — 2026-09-19
+- **✅ ÉCLAIREUR déployé (ordre utilisateur « lance eclaireur »)** : l'idée en réserve est passée en production — workflow n8n « ÉCLAIREUR — lecture de page web (Ollama) », webhook **POST https://n8n.rennesdev.fr/webhook/eclaireur** protégé par header `X-Eclaireur-Key` (clé générée, `/etc/eclaireur-key.txt` root 600). Chaîne : HTTP GET → extraction texte (strip HTML, entités FR, **2500 car. max**) → Ollama **qwen2.5:3b** (résumé 5 phrases max ou Q&A sur `question`) → réponse JSON. Tests réels OK : résumé wiki ~83 s, question ciblée ~52 s, erreurs (clé 401, URL invalide, page 404) < 2 s, **modèle déchargé après usage** (`keep_alive: 0`, RAM au repos inchangée). README + workflow.json exportés (clé en placeholder, grep vérifié) → poussés sur `rennesdev-vps-ops/workflows/eclaireur/`. Skill `n8n-ops` enrichi des nouveaux pièges.
+- **Pièges découverts (détail dans skill n8n-ops + README ÉCLAIREUR)** : nœud Webhook **sans `webhookId`** → webhook production non enregistré (404 « not registered ») ; workflow créé en SQL sans ligne `shared_workflow` → activation en boucle `EntityNotFoundError` ; HTTP Request `responseFormat: text` renvoie le HTML dans `data` sans `statusCode` (→ `fullResponse: true`) ; **Cloudflare coupe à 100 s** (524) → le 7b (~12 tokens/s en CPU) était trop lent, bascule sur le 3b (~28 tokens/s) et réduction du texte extrait.
+- ⚠️ **PAT GitHub affiché de nouveau en session 19/09** (lecture du nœud « Config » de « Push GitHub » pour calquer la structure d'un webhook — sortie non filtrée, 3e occurrence). Aucun push sur disque du token ; **rotation à la prochaine occasion** (l'utilisateur génère le token, le colle dans « Push GitHub », l'assistant le propage SQL aux autres nœuds).
+- Divers : correction de la table Services (`OLLAMA_KEEP_ALIVE=10m` n'était pas répercuté) ; contrôle santé du 19/09 tout vert (7 conteneurs, RAM 20 %, disque 52 %, Kopia OK, pas d'ORDRES.md).
+
+## 🆕 Dernière session — 2026-09-18 (5e partie)
+- **PR #4 + PR #1 fusionnées sur `construction-site-tracker`** (par l'utilisateur, après désactivation ponctuelle du ruleset) : `main` contient désormais le projet Android Capacitor (signé, keystore hors repo) + la maj auto des dépendances. ⚠️ pendant la manip, le ruleset avait perdu ses règles « 1 review requise » et « suppression » → **restaurées le jour même via l'API** (ancien ruleset supprimé + recréé avec les 3 règles : non_fast_forward, deletion, pull_request 1 review — id 23667839 ; le PATCH sur l'ancien ruleset renvoyait 404 malgré Administration write → contournement delete+recrée).
+- **PAT GitHub roté (terminé côté VPS)** : nouveau token fine-grained généré par l'utilisateur → collé dans n8n « Push GitHub » → propagation SQL (jamais affiché) vers « GitHub — descriptions auto » (3 occurrences) et « Agent Telegram » (1 occ.) ; `n8n_workflow` redémarré pour purger le cache RAM ; test réel OK (push webhook « git-ops-journal », note `docs/rotation-pat-2026-09-18.md`). ✅ **Ancien token révoqué par l'utilisateur le jour même — rotation close.**
+- ✅ Keystores des 2 apps sauvegardés hors VPS par l'utilisateur.
+- **Lecteur-PDF v1.0.1 créée (versionCode 2)** : bump de version uniquement (aucun changement fonctionnel), build signé avec le keystore dédié (apksigner + jarsigner vérifiés), commit poussé + **release GitHub v1.0.1** avec AAB+APK — destinée à la piste **Tests fermés** de la Play Console (la v1.0.0 reste sur les tests internes).
+- Piège SQL noté : `->>` a la même priorité que `||` en PG 17 → toujours parenthéser `(n->>'name')` dans une concaténation.
 ## 🆕 Dernière session — 2026-09-18 (4e partie)
 - **Contrôle santé vert + point DNS réglé** : `fichiers.rennesdev.fr` **résout désormais** (proxy orange Cloudflare, HTTPS 200) — le record A a été créé côté Cloudflare. Cert Let's Encrypt **émis le 18/09 11:35 UTC** (expire 17/12, renouvellement auto). File Browser opérationnel via le navigateur.
 - **Analyse disque (39 → 37 Go après nettoyage)** : la hausse venait du store images **containerd** (16 Go, Docker l'utilise désormais) + volumes 8,9 Go (modèles ollama ~6,5 Go, bases PG) — rien d'anormal. Nettoyages faits : image n8n dangling supprimée (245 Mo), `apt clean`. Reste 51 % utilisé, RAS.
@@ -32,7 +44,7 @@
 | Frontal | **Caddy** (80/443, certs ACME auto, expirent 2026-12-10, renouvellement auto) — `/etc/caddy/Caddyfile` |
 | Umami | `umami_app` (127.0.0.1:3000) + `umami_db` (PG 16) — stack `~/umami/`, creds `~/umami/.credentials.txt` |
 | n8n | **v2.39.6** (maj 16/09) — `n8n_workflow` (127.0.0.1:5678) + `n8n_db` (**PostgreSQL 17**) — `~/docker-compose.yml`, mdp dans `~/.env` (`N8N_DB_PASSWORD`) |
-| Ollama | `ollama` (127.0.0.1:11434), réseau Docker `apps` — modèles : `qwen2.5:7b` (bot IA), `llama3.2:3b`, `qwen2.5:3b`. `OLLAMA_KEEP_ALIVE=30m` |
+| Ollama | `ollama` (127.0.0.1:11434), réseau Docker `apps` — modèles : `qwen2.5:7b` (bot IA), `llama3.2:3b`, `qwen2.5:3b`. `OLLAMA_KEEP_ALIVE=10m` (réduit de 30 min le 18/09, choix utilisateur) |
 | Netdata | `netdata`, UI **127.0.0.1:19999** + **https://netdata.rennesdev.fr** (basic auth, credentials `/etc/caddy/netdata-auth.txt` root 600) — `~/netdata/docker-compose.yml` |
 | File Browser | `filebrowser`, UI **127.0.0.1:8085** + **https://fichiers.rennesdev.fr** (auth JWT intégrée, credentials `/etc/caddy/filebrowser-auth.txt` root 600, scope `/home/ubuntu`) — `~/filebrowser/docker-compose.yml` |
 | Bot contrôle | `vps-tgbot.service` → `/usr/local/bin/vps-tgbot.py` (long polling) : `/backup`, `/status`, `/ordres`, `/ok`, `/help` |
@@ -74,11 +86,12 @@
 > ℹ️ Pourquoi « hors VPS » : ce n'est pas que le PC est plus sûr — c'est de la redondance (le VPS = point de défaillance unique ; sans keystore, l'app est figée à jamais sur le Play Store). La copie existe déjà via le snapshot Kopia hebdo de `/home/ubuntu` vers le PC — l'enjeu est de vérifier qu'un restore fonctionne.
 - **lecteur-pdf : Play Console** — créer l'app « Lecteur PDF » (⚠️ package = `fr.rennesdev.lecteurpdf`), upload AAB v1.0.0 en Tests internes, fiche store + captures, déclaration « aucune donnée ». Guide : `PLAY-STORE.md` du repo `Lecteur-PDF`.
 - ✅ 2026-09-18 : record DNS A `fichiers.rennesdev.fr` créé (proxy orange, cert LE émis, HTTPS 200).
-- **Sauvegarder hors VPS les 2 keystores + mots de passe** : `~/keystores/suivi-interventions-release.keystore` et `~/keystores/lecteur-pdf-release.keystore` (+ fichiers credentials associés).
-- **Rotations possibles sur demande** : PAT GitHub (affiché par erreur dans la session 18/09 — voir journal).
-- **construction-site-tracker : fusionner la PR #2** (projet Android + signature — l'approbation d'un revieweur avec write est exigée par le ruleset ; la release v1.0.0 est déjà publiée avec AAB/APK).
+- ✅ 2026-09-18 : **2 keystores sauvegardés hors VPS** (l'utilisateur).
+- ✅ 2026-09-18 : **PAT GitHub roté et déployé partout, ancien token révoqué** — rotation close.
+- **Play Console (bien avancé, 2026-09-18/19)** : 2 apps créées (brouillon + tests internes), questionnaires (classification du contenu, cible et contenu) et fiches Play Store **remplis**, icônes et illustrations générées via Google AI Studio, uploads AAB en tests internes, **11 testeurs** — en attente du passage en production. ⚠️ Point d'attention : si le compte développeur a été créé après le 13/11/2023, Google exige un **test fermé (closed testing) avec ≥ 20 testeurs optés pendant 14 jours** avant d'autoriser la production (les tests internes ne comptent pas pour ce quota).
+- ✅ 2026-09-18 : **PR #2 (recréée en #4) fusionnée** — projet Android Capacitor sur `main` de `construction-site-tracker` (avec la PR deps #1).
 - **construction-site-tracker : Play Console** — créer l'app, upload de l'AAB (release v1.0.0) en Tests internes, laisser « Google gère la clé de signature de l'app » (Play App Signing), complétérer fiche store + déclaration données. Guide pas-à-pas : `PLAY-STORE.md` dans le repo.
-- **Sauvegarder le keystore + mot de passe hors VPS** (`~/keystores/suivi-interventions-release.keystore` + `suivi-interventions-credentials.txt`).
+- ✅ 2026-09-18 : **keystore suivi-interventions sauvegardé hors VPS** (couvert par la ligne keystores ci-dessus).
 - ✅ 2026-09-17 : points GitHub précédents tous traités (ancien token révoqué, issue fermée, PR relues, Tally photographe OK, PAT roté, dépôts confirmés) — validé par l'utilisateur.
 
 ## 🔎 Vérifications rapides utiles
@@ -94,6 +107,7 @@ systemctl list-timers vps-daily-journal.timer --no-pager         # tous les jour
 ```
 
 ## Notes
+- 💡 **Idée SPECTRE en réserve (pas de mise en projet)** : suite naturelle d'**ÉCLAIREUR (déployé le 19/09, option a)** — navigateur headless dans un conteneur Docker (Playwright) qui rend la page (y compris le JavaScript) puis extrait le texte, pour les pages qui sont des apps JS. Plus lourd (RAM/CPU) qu'ÉCLAIREUR (HTTP GET + extraction statique). Basculer sur SPECTRE uniquement si les pages ciblées le nécessitent. (c) à terme éventuellement : agent navigateur plus complet (hors périmètre VPS actuel). Contraintes inchangées : RAM, taille de contexte, respect des sites (lecture publique seule, pas de contournement paywall/anti-bot).
 - Historique détaillé (crises résolues, installations, debugging) : `ETAT-VPS-archive-2026-09.md`.
 - Docs ops + workflows + scripts versionnés : `~/projects/rennesdev-vps-ops/` (= repo GitHub).
 - Skill de contrôle santé : `~/.agents/skills/vps-sante/` (copié dans le repo GitHub).
