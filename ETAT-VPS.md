@@ -5,6 +5,11 @@
 
 ---
 
+## 🆕 Dernière session — 2026-09-19 (3e partie)
+- **✅ Nav.rennesdev v1 déployée (ordre utilisateur)** : « navigateur web simple et léger » — l'utilisateur part d'un navigateur nu, l'assistant IA viendra en v2 (lira les pages **côté serveur**, corrige la limite d'ÉCLAIREUR où il faut copier-coller). Chaîne : **https://nav.rennesdev.fr** (Caddy, basic auth, credentials `/etc/caddy/nav-auth.txt` root 600) → conteneur **`nav_rennesdev`** (`node:22-alpine`, zéro dépendance, `~/nav/docker-compose.yml`, 127.0.0.1:8086, 256 Mo max, réseau `apps` pour la v2/Ollama). Mode lecture : le VPS charge la page, strip scripts/styles/iframes/formulaires/attributs, réécrit les liens vers `/go?url=…` (navigation de page en page via le VPS), images conservées, historique local. Garde-fous : SSRF bloqué (IP privées/Tailscale/CGNAT), timeout 20 s, max 3 Mo, 5 redirections, titres échappés + historique en textContent. Tests réels OK : navigation wiki 2 niveaux, liens avec `&`, erreurs propres (DNS, 404, contenu non HTML, protocole interdit, SSRF), unitaires d'échappement. README + code → `rennesdev-vps-ops/nav/` poussé sur GitHub. **Pièges** : entités HTML des attributs à décoder avant résolution (sinon double-encodage), `URL.href` déjà encodé (ne pas re-encodeURIComponent, protéger le `&` en `%26`), et le pipeline d'édition de l'assistant décode les entités HTML → construire les entités par concaténation JS (`'\u0026amp;'`).
+- ⏳ **Reste utilisateur : créer le record DNS A `nav.rennesdev.fr`** chez Cloudflare (proxy orange) — Caddy a déjà demandé le cert LE, retry auto dès que le DNS pointe.
+- Caddy tourne **en service host** (pas en conteneur) — `caddy hash-password` s'utilise directement sur l'hôte.
+
 ## 🆕 Dernière session — 2026-09-19 (2e partie)
 - **✅ ÉCLAIREUR testé en réel par l'utilisateur** : page inexistante → erreur 404 propre en 1,2 s ; page réelle + question ciblée (wiki IA) → réponse pertinente de qwen2.5:3b en **49 s**. Chaîne complète validée de bout en bout, aucune modification du workflow.
 - **Play Console : compte confirmé « Particulier »** (profil de paiement validé le 01/07/2026) → **pas de dérogation possible** : la règle des comptes personnels récents s'applique — **test fermé avec ≥ 20 testeurs optés en continu pendant 14 jours** avant l'accès à la production (les tests internes et les 11 testeurs actuels ne comptent pas). Plan donné à l'utilisateur : (1) créer la piste « Test fermé » pour chaque app avec l'AAB déjà validé, (2) recruter 9-10 testeurs de plus (≥ 20 au total, lien d'opt-in + installation réelle + engagement pendant 14 j), (3) les mêmes testeurs sur les 2 apps → les 14 jours tournent en parallèle, (4) à J+14 le formulaire « Demander l'accès à la production » se débloque. Itérations AAB possibles pendant l'attente sans casser la piste.
@@ -51,6 +56,7 @@
 | Ollama | `ollama` (127.0.0.1:11434), réseau Docker `apps` — modèles : `qwen2.5:7b` (bot IA), `llama3.2:3b`, `qwen2.5:3b`. `OLLAMA_KEEP_ALIVE=10m` (réduit de 30 min le 18/09, choix utilisateur) |
 | Netdata | `netdata`, UI **127.0.0.1:19999** + **https://netdata.rennesdev.fr** (basic auth, credentials `/etc/caddy/netdata-auth.txt` root 600) — `~/netdata/docker-compose.yml` |
 | File Browser | `filebrowser`, UI **127.0.0.1:8085** + **https://fichiers.rennesdev.fr** (auth JWT intégrée, credentials `/etc/caddy/filebrowser-auth.txt` root 600, scope `/home/ubuntu`) — `~/filebrowser/docker-compose.yml` |
+| Nav.rennesdev | `nav_rennesdev` (`node:22-alpine`, zéro dep) — **https://nav.rennesdev.fr** (basic auth, credentials `/etc/caddy/nav-auth.txt` root 600) → 127.0.0.1:8086 — `~/nav/docker-compose.yml` — navigateur léger mode lecture, v2 = assistant IA |
 | Bot contrôle | `vps-tgbot.service` → `/usr/local/bin/vps-tgbot.py` (long polling) : `/backup`, `/status`, `/ordres`, `/ok`, `/help` |
 | Bot IA | Workflow n8n « Agent Telegram » (bot dédié) : Telegram → Filter chat.id → Ollama qwen2.5:7b + PG Chat Memory → réponse |
 | Sécurité | UFW (22/80/443), fail2ban (sshd + recidive), SSH par clé uniquement, `passwordauthentication=no` |
@@ -89,6 +95,7 @@
 ## ⏳ En attente (actions utilisateur)
 > ℹ️ Pourquoi « hors VPS » : ce n'est pas que le PC est plus sûr — c'est de la redondance (le VPS = point de défaillance unique ; sans keystore, l'app est figée à jamais sur le Play Store). La copie existe déjà via le snapshot Kopia hebdo de `/home/ubuntu` vers le PC — l'enjeu est de vérifier qu'un restore fonctionne.
 - **lecteur-pdf : Play Console** — créer l'app « Lecteur PDF » (⚠️ package = `fr.rennesdev.lecteurpdf`), upload AAB v1.0.0 en Tests internes, fiche store + captures, déclaration « aucune donnée ». Guide : `PLAY-STORE.md` du repo `Lecteur-PDF`.
+- **Nav.rennesdev : DNS** — créer le record A `nav.rennesdev.fr` chez Cloudflare (proxy orange) → cert LE émis automatiquement par Caddy (déjà en file).
 - ✅ 2026-09-18 : record DNS A `fichiers.rennesdev.fr` créé (proxy orange, cert LE émis, HTTPS 200).
 - ✅ 2026-09-18 : **2 keystores sauvegardés hors VPS** (l'utilisateur).
 - ✅ 2026-09-18 : **PAT GitHub roté et déployé partout, ancien token révoqué** — rotation close.
