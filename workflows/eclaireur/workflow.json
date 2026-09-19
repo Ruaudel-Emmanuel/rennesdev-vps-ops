@@ -1,0 +1,337 @@
+{
+  "id": "a7e2c1d9-4f6b-4c8e-9d3a-1b5f7e0a2c4d",
+  "name": "ÉCLAIREUR — lecture de page web (Ollama)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eclaireur",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1400,
+        300
+      ],
+      "name": "Webhook",
+      "webhookId": "aef634e0-03dd-4f45-a92f-a7cfd39049e4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ecl-key-1",
+              "name": "eclaireur_key",
+              "value": "PLACEHOLDER-CLE-VOIR-/etc/eclaireur-key.txt",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1180,
+        300
+      ],
+      "name": "Config (Clé ÉCLAIREUR)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.headers['x-eclaireur-key'] }}",
+              "rightValue": "={{ $json.eclaireur_key }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -960,
+        300
+      ],
+      "name": "Clé valide ?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Clé invalide\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        520
+      ],
+      "name": "Réponse refusée"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text",
+              "fullResponse": true
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -720,
+        300
+      ],
+      "name": "Lire la page",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ÉCLAIREUR — extraction du texte lisible d'une page HTML\nconst MAX_CHARS = 2500;\nconst src = $('Webhook').first().json || {};\nconst body = src.body || {};\nconst url = String(body.url || '').trim();\nconst question = String(body.question || '').trim();\n\nconst erreur = (msg) => [{ json: { erreur: msg, url, question } }];\n\nif (!url || !/^https?:\\/\\//i.test(url)) {\n  return erreur('URL manquante ou non http(s)');\n}\n\nconst item = $input.first().json || {};\nif (item.error) {\n  const msg = typeof item.error === 'string' ? item.error : (item.error.message || 'échec de la requête HTTP');\n  return erreur('Impossible de lire la page : ' + msg);\n}\nconst status = item.statusCode || 0;\nconst html = typeof item.body === 'string' ? item.body : (typeof item.data === 'string' ? item.data : '');\n\nif (status < 200 || status >= 300) {\n  return erreur('La page a répondu HTTP ' + status);\n}\nif (!html) {\n  return erreur('Réponse vide (aucun contenu HTML)');\n}\n\nlet t = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<noscript[\\s\\S]*?<\\/noscript>/gi, ' ')\n  .replace(/<svg[\\s\\S]*?<\\/svg>/gi, ' ')\n  .replace(/<!--[\\s\\S]*?-->/g, ' ')\n  .replace(/<(br|\\/p|\\/div|\\/h[1-6]|\\/li|\\/tr|\\/table|\\/section|\\/article)[^>]*>/gi, '\\n')\n  .replace(/<[^>]+>/g, ' ');\n\n// Entités HTML nommées (les plus courantes, accentuées FR incluses)\nconst ents = {\n  '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '\"', '&#39;': \"'\",\n  '&apos;': \"'\", '&nbsp;': ' ', '&eacute;': 'é', '&egrave;': 'è',\n  '&agrave;': 'à', '&ccedil;': 'ç', '&ecirc;': 'ê', '&ocirc;': 'ô',\n  '&ucirc;': 'û', '&uuml;': 'ü', '&auml;': 'ä', '&ouml;': 'ö',\n  '&iuml;': 'ï', '&szlig;': 'ß', '&euro;': '€', '&laquo;': '«', '&raquo;': '»'\n};\nt = t.replace(/&(amp|lt|gt|quot|#39|apos|nbsp|eacute|egrave|agrave|ccedil|ecirc|ocirc|ucirc|uuml|auml|ouml|iuml|szlig|euro|laquo|raquo);/g,\n  (m) => ents[m] ?? m);\nt = t.replace(/&#(\\d+);/g, (_, d) => { try { return String.fromCodePoint(+d); } catch { return ' '; } });\nt = t.replace(/&#x([0-9a-f]+);/gi, (_, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch { return ' '; } });\n\n// Nettoyage des espaces / lignes vides\nt = t\n  .split('\\n')\n  .map((l) => l.replace(/[ \\t]+/g, ' ').trim())\n  .filter(Boolean)\n  .join('\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nif (!t) {\n  return erreur('Aucun texte extrait de la page');\n}\nif (t.length > MAX_CHARS) {\n  t = t.slice(0, MAX_CHARS) + '\\n\\n[… texte tronqué]';\n}\n\nreturn [{ json: { url, question, texte: t, longueur: t.length, statusCode: status } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        300
+      ],
+      "name": "Extraire le texte"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.erreur }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -280,
+        300
+      ],
+      "name": "Page lue ?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: $json.erreur, url: $json.url }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -40,
+        520
+      ],
+      "name": "Réponse erreur"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ÉCLAIREUR — préparation de la requête /api/chat pour Ollama\nconst item = $input.first().json || {};\nconst { url, question, texte } = item;\n\nconst system =\n  \"Tu es ÉCLAIREUR, un assistant de lecture de pages web. \" +\n  \"On te fournit le TEXTE D'UNE PAGE WEB (extrait, possiblement tronqué). \" +\n  \"Réponds en français, uniquement à partir de ce texte, sans inventer. Reste bref : résumé en 5 phrases maximum, réponse directe et courte pour une question. \" +\n  \"Si l'information demandée n'est pas dans le texte, dis-le clairement. \" +\n  \"Sois concis et structuré (phrases courtes, listes si utile).\";\n\nconst consigne = question\n  ? \"Voici une page web et une question. Réponds à la question en te basant sur la page.\\n\\nQUESTION : \" + question\n  : \"Voici une page web. Fais-en un résumé clair et concis (l'essentiel, les points clés), en français.\";\n\nconst user = consigne + \"\\n\\nPAGE : \" + url + \"\\n\\nTEXTE DE LA PAGE :\\n\" + texte;\n\nconst payload = {\n  model: 'qwen2.5:3b',\n  stream: false,\n  keep_alive: 0, // décharge immédiat : usage à la demande, pas de RAM résidente\n  options: { num_ctx: 8192, temperature: 0.3, num_predict: 350 },\n  messages: [\n    { role: 'system', content: system },\n    { role: 'user', content: user }\n  ]\n};\n\nreturn [{ json: { ollama_body: JSON.stringify(payload), url, question } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "name": "Prépare la requête"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.ollama_body }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        300
+      ],
+      "name": "Analyse (Ollama)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ url: $('Extraire le texte').first().json.url, question: $('Extraire le texte').first().json.question, modele: $json.model, reponse: $json.message.content }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        300
+      ],
+      "name": "Répondre"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config (Clé ÉCLAIREUR)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config (Clé ÉCLAIREUR)": {
+      "main": [
+        [
+          {
+            "node": "Clé valide ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clé valide ?": {
+      "main": [
+        [
+          {
+            "node": "Lire la page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Réponse refusée",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la page": {
+      "main": [
+        [
+          {
+            "node": "Extraire le texte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraire le texte": {
+      "main": [
+        [
+          {
+            "node": "Page lue ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Page lue ?": {
+      "main": [
+        [
+          {
+            "node": "Prépare la requête",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Réponse erreur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prépare la requête": {
+      "main": [
+        [
+          {
+            "node": "Analyse (Ollama)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyse (Ollama)": {
+      "main": [
+        [
+          {
+            "node": "Répondre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
