@@ -5,6 +5,14 @@
 
 ---
 
+## 🆕 Dernière session — 2026-09-20
+- **✅ n8n mis à jour 2.39.6 → 2.39.8** (dump préalable `~/n8n-db-avant-MAJ-2026-09-20.sql.gz`, conteneur recréé) : `/healthz` 200, 10 workflows actifs, webhooks OK.
+- **✅ Uptime-Kuma en production** : conteneur `uptime_kuma` (127.0.0.1:3001, mem_limit 512 m, volume `kuma_data`, réseau `apps`), vhost **https://uptime.rennesdev.fr** (basic auth + login Kuma), **8 moniteurs** (n8n, Umami, Nav, Fichiers, Netdata, Browserless, Ollama, port PG n8n_db — 60 s, maxretries 2), **notification Telegram liée aux 8**, 130+ heartbeats enregistrés. Skill `uptime-kuma` créé (argument commercial « Résilience/Garantie »). Record DNS créé par l'utilisateur (proxy orange).
+- **✅ Browserless (Chromium headless) déployé** : conteneur `browserless` (127.0.0.1:3100 → 3000, mem_limit 1500 m, shm 512 m), token API dans `~/.env` (`BROWSERLESS_TOKEN`). Usage depuis n8n : `http://browserless:3000?token=…`. Tests réels : screenshot PNG 200, mauvais token → 401.
+- **🔧 Fin de chantier interrompu (continué par l'assistant)** : cert LE d'uptime non émis (retries ACME planifiés avant la création du DNS — même piège que Nav le 19/09) → **restart Caddy, cert obtenu 15:41 UTC, HTTPS 200**. Fichier `/etc/caddy/uptime-auth.txt` incomplet (commentaires sans ligne identifiants) → **mot de passe régénéré** et écrit (root 600) ; mot de passe Kuma (bcrypt en base) réaligné sur le même, vérifié par comparaison bcrypt.
+- **⚠️ Incident Caddy (rattrapé dans la foulée)** : deux appels `caddy hash-password` défaillants (refus stdin dans cet environnement ; `-p` prend le mot de passe littéral, pas un fichier) puis un `sed` trop large ont vidé les 3 hash `basic_auth` du Caddyfile — le reload en échec a maintenu la config valide en RAM ; restauration faite depuis les plaintexts root-only (`nav-auth.txt`, `netdata-auth.txt`, uptime regénéré), hash produits avec bcryptjs du conteneur Kuma (`$2a$10$`, accepté par Caddy). Vérifié : uptime 302→dashboard, nav 200, netdata 200, **401 sans auth sur les 3**. Leçon : écrire les hash via un heredoc Python ou un outillage validé, jamais un sed sur motif partiel.
+- Divers : skills réorganisés (`.md` + `SKILL.md`, notamment `post-mortem`, `roi-mesure-gain`, `sequence-conversation`, `profil-utilisateur`, `integration-data`, `methodologie-conseil-ia`) ; contrôle santé du 20/09 vert (disque 60 %, RAM 2,0/7,6 Go, Kopia dépôt connecté).
+
 ## 🆕 Dernière session — 2026-09-19 (5e partie)
 - **✅ Nav.rennesdev v2 : assistant IA intégré (ordre utilisateur, test v1 validé)** — développée sur branche dédiée `v2-assistant-ia` (règle 11), commits commentés. Bouton **🤖 IA** dans la barre du lecteur → panneau (Résumer / question libre) → **qwen2.5:3b en local** via `POST /ia` (Ollama, réseau `apps`). Le serveur réutilise la page déjà extraite pour l'affichage via un **cache mémoire** (TTL 15 min, 30 pages max) : l'IA voit le contenu directement, zéro copier-coller. `keep_alive: 0` → RAM déchargée après chaque réponse (vérifié : 1,7 Go au repos). Tests réels : résumé ~72 s, question ~59 s, HTTPS+basic auth OK, erreurs JSON propres.
 - **✅ Tests concluants (utilisateur) → branche `v2-assistant-ia` fusionnée dans `main`** (merge, README ajusté, poussé) ; branche supprimée localement et sur GitHub après fusion. Repo `Nav.rennesdev` : `main` = v1+v2.
@@ -56,11 +64,13 @@
 |---|---|
 | Frontal | **Caddy** (80/443, certs ACME auto, expirent 2026-12-10, renouvellement auto) — `/etc/caddy/Caddyfile` |
 | Umami | `umami_app` (127.0.0.1:3000) + `umami_db` (PG 16) — stack `~/umami/`, creds `~/umami/.credentials.txt` |
-| n8n | **v2.39.6** (maj 16/09) — `n8n_workflow` (127.0.0.1:5678) + `n8n_db` (**PostgreSQL 17**) — `~/docker-compose.yml`, mdp dans `~/.env` (`N8N_DB_PASSWORD`) |
+| n8n | **v2.39.8** (maj 20/09) — `n8n_workflow` (127.0.0.1:5678) + `n8n_db` (**PostgreSQL 17**) — `~/docker-compose.yml`, mdp dans `~/.env` (`N8N_DB_PASSWORD`) |
 | Ollama | `ollama` (127.0.0.1:11434), réseau Docker `apps` — modèles : `qwen2.5:7b` (bot IA), `llama3.2:3b`, `qwen2.5:3b`. `OLLAMA_KEEP_ALIVE=10m` (réduit de 30 min le 18/09, choix utilisateur) |
 | Netdata | `netdata`, UI **127.0.0.1:19999** + **https://netdata.rennesdev.fr** (basic auth, credentials `/etc/caddy/netdata-auth.txt` root 600) — `~/netdata/docker-compose.yml` |
 | File Browser | `filebrowser`, UI **127.0.0.1:8085** + **https://fichiers.rennesdev.fr** (auth JWT intégrée, credentials `/etc/caddy/filebrowser-auth.txt` root 600, scope `/home/ubuntu`) — `~/filebrowser/docker-compose.yml` |
 | Nav.rennesdev | `nav_rennesdev` (`node:22-alpine`, zéro dep) — **https://nav.rennesdev.fr** (basic auth, credentials `/etc/caddy/nav-auth.txt` root 600) → 127.0.0.1:8086 — `~/projects/Nav.rennesdev/docker-compose.yml` (repo GitHub `Nav.rennesdev`) — navigateur léger mode lecture, v2 = assistant IA |
+| Uptime-Kuma | `uptime_kuma` (`louislam/uptime-kuma:1`, mem_limit 512 m) — **https://uptime.rennesdev.fr** (basic auth + login Kuma, credentials `/etc/caddy/uptime-auth.txt` root 600) → 127.0.0.1:3001 — 8 moniteurs + notification Telegram — volume `kuma_data` |
+| Browserless | `browserless` (`ghcr.io/browserless/chromium`, mem_limit 1500 m, shm 512 m) — Chromium headless piloté par API (scraping JS, PDF, screenshots) — 127.0.0.1:3100 ; usage n8n : `http://browserless:3000?token=` (`BROWSERLESS_TOKEN` dans `~/.env`) |
 | Bot contrôle | `vps-tgbot.service` → `/usr/local/bin/vps-tgbot.py` (long polling) : `/backup`, `/status`, `/ordres`, `/ok`, `/help` |
 | Bot IA | Workflow n8n « Agent Telegram » (bot dédié) : Telegram → Filter chat.id → Ollama qwen2.5:7b + PG Chat Memory → réponse |
 | Sécurité | UFW (22/80/443), fail2ban (sshd + recidive), SSH par clé uniquement, `passwordauthentication=no` |
@@ -100,6 +110,7 @@
 ## ⏳ En attente (actions utilisateur)
 > ℹ️ Pourquoi « hors VPS » : ce n'est pas que le PC est plus sûr — c'est de la redondance (le VPS = point de défaillance unique ; sans keystore, l'app est figée à jamais sur le Play Store). La copie existe déjà via le snapshot Kopia hebdo de `/home/ubuntu` vers le PC — l'enjeu est de vérifier qu'un restore fonctionne.
 - **lecteur-pdf : Play Console** — créer l'app « Lecteur PDF » (⚠️ package = `fr.rennesdev.lecteurpdf`), upload AAB v1.0.0 en Tests internes, fiche store + captures, déclaration « aucune donnée ». Guide : `PLAY-STORE.md` du repo `Lecteur-PDF`.
+- ✅ 2026-09-20 : record DNS A `uptime.rennesdev.fr` créé (proxy orange) — cert LE émis, HTTPS 200, 8 moniteurs + notification Telegram actifs.
 - ✅ 2026-09-19 : record DNS A `nav.rennesdev.fr` créé (proxy orange) — cert LE émis, HTTPS 200, navigation testée. **Nav.rennesdev v1 terminée.**
 - ✅ 2026-09-18 : record DNS A `fichiers.rennesdev.fr` créé (proxy orange, cert LE émis, HTTPS 200).
 - ✅ 2026-09-18 : **2 keystores sauvegardés hors VPS** (l'utilisateur).
