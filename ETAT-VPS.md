@@ -15,6 +15,7 @@
 ## 🆕 Dernière session — 2026-09-20 (2e partie)
 - **✅ Skill `vps-sante` mis à jour** (il datait d'avant les derniers services) : script `vps-sante.sh` couvre désormais **10 conteneurs** (+ filebrowser, nav_rennesdev, uptime_kuma, browserless), **3 vhosts récents** (nav/uptime → 401 attendu sans auth = basic auth OK ; fichiers → 200 = page login), **5 certificats** et **6 timers** (+ github-weekly, vps-daily-journal). Contrôle relancé : **TOUT VERT** (RAM 26 %, disque 60 %, snapshot Kopia 17:34 du jour, cert LE up 17h34 OK). Copie repo `rennesdev-vps-ops` mise à jour et poussée via webhook (PAT jamais en session).
 - RAS sinon : ORDRES.md absent, pas d'anomalie, 4 paquets APT en phasing (normal).
+- **Clôture de session (18h52 UTC)** : sauvegarde Kopia à la demande exécutée — 4 snapshots (staging + dumps PG umami/n8n, volumes Docker, /home/ubuntu, /etc/caddy) vers le PC `super-pc-vert`. Tous les changements du jour inclus (ETAT-VPS.md, scripts, repos publics).
 
 ## 🆕 Dernière session — 2026-09-20
 - **✅ n8n mis à jour 2.39.6 → 2.39.8** (dump préalable `~/n8n-db-avant-MAJ-2026-09-20.sql.gz`, conteneur recréé) : `/healthz` 200, 10 workflows actifs, webhooks OK.
