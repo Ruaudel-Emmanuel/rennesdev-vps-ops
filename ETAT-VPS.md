@@ -10,6 +10,8 @@
 - **⚠️ Découverte : `Lecteur-PDF` était archivé sur GitHub** (impossible d'y pousser les futures releases du test fermé Play) → désarchivé en même temps que la mise en public. 12 repos actifs publics désormais (vs 5 avant).
 - `rennesdev-vps-ops` est public : vérifié sans secrets (IP serveur, IP Tailscale, timers visibles — pas exploitable de l'extérieur : UFW 22/80/443, SSH par clé, Cloudflare proxy, Tailscale = réseau privé).
 
+- **✅ Suite (ordre utilisateur)** : `git-ops-journal` et `VPS-Rennesdev.fr` passés en **public** après grep élargi (tokens, chat ID, IP Tailscale, mots de passe — rien trouvé ; contenu des journaux anonymisé par conception : ni domaine ni IP publique). README des deux corrigés (« Repo privé » → « Repo public »), poussés via webhook. **14 repos actifs publics au total**, restent 0 actif en privé. Clonage de `VPS-Rennesdev.fr` dans `~/projects/` (convention projets).
+
 ## 🆕 Dernière session — 2026-09-20 (2e partie)
 - **✅ Skill `vps-sante` mis à jour** (il datait d'avant les derniers services) : script `vps-sante.sh` couvre désormais **10 conteneurs** (+ filebrowser, nav_rennesdev, uptime_kuma, browserless), **3 vhosts récents** (nav/uptime → 401 attendu sans auth = basic auth OK ; fichiers → 200 = page login), **5 certificats** et **6 timers** (+ github-weekly, vps-daily-journal). Contrôle relancé : **TOUT VERT** (RAM 26 %, disque 60 %, snapshot Kopia 17:34 du jour, cert LE up 17h34 OK). Copie repo `rennesdev-vps-ops` mise à jour et poussée via webhook (PAT jamais en session).
 - RAS sinon : ORDRES.md absent, pas d'anomalie, 4 paquets APT en phasing (normal).
