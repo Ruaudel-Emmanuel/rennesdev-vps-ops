@@ -8,7 +8,7 @@ bad()  { printf '  ❌ %s\n' "$1"; ANOM=1; }
 warn() { printf '  ⚠️  %s\n' "$1"; }
 
 echo "== Conteneurs Docker =="
-for c in n8n_workflow n8n_db umami_app umami_db ollama netdata; do
+for c in n8n_workflow n8n_db umami_app umami_db ollama netdata filebrowser nav_rennesdev uptime_kuma browserless; do
     state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null)
     [ "$state" = "running" ] && ok "$c : $state" || bad "$c : ${state:-introuvable}"
 done
@@ -20,6 +20,16 @@ for d in umami n8n; do
     [ "$edge" = "200" ] && [ "$org" = "200" ] && ok "$d.rennesdev.fr : edge=$edge origine=$org" \
         || bad "$d.rennesdev.fr : edge=$edge origine=$org"
 done
+
+# Vhosts récents — 401 SANS auth = basic auth en place (nav, uptime) ; 200 = page login (fichiers)
+echo "== HTTPS vhosts récents (nav / uptime / fichiers) =="
+for entry in "nav:401" "uptime:401" "fichiers:200"; do
+    d=${entry%%:*}; exp=${entry##*:}
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$d.rennesdev.fr")
+    [ "$code" = "$exp" ] && ok "$d.rennesdev.fr : $code (attendu $exp)" \
+        || bad "$d.rennesdev.fr : $code (attendu $exp)"
+done
+
 
 echo "== Système =="
 MEM=$(free | awk '/Mem:/{printf "%d", $3/$2*100}')
@@ -40,8 +50,8 @@ for s in caddy fail2ban ufw vps-tgbot; do
     systemctl is-active --quiet "$s" && ok "$s : actif" || bad "$s : INACTIF"
 done
 
-echo "== Timers (4 attendus) =="
-for t in vps-watchdog.timer vps-metrics-report.timer vps-backup.timer vps-backup-reminder.timer; do
+echo "== Timers (6 attendus) =="
+for t in vps-watchdog.timer vps-metrics-report.timer vps-backup.timer vps-backup-reminder.timer github-weekly.timer vps-daily-journal.timer; do
     systemctl is-active --quiet "$t" && ok "$t : actif" || bad "$t : INACTIF"
 done
 
@@ -70,7 +80,7 @@ else
 fi
 
 echo "== Certificats origine (Caddy) =="
-for d in umami n8n; do
+for d in umami n8n nav uptime fichiers; do
     END=$(echo | openssl s_client -connect 127.0.0.1:443 -servername "$d.rennesdev.fr" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
     if [ -n "$END" ]; then
         DAYS=$(( ($(date -d "$END" +%s) - $(date +%s)) / 86400 ))
