@@ -35,9 +35,14 @@ echo "== Système =="
 MEM=$(free | awk '/Mem:/{printf "%d", $3/$2*100}')
 DISK=$(df -h / | awk 'NR==2{print $5}' | tr -d '%')
 LOAD=$(cut -d' ' -f1 /proc/loadavg)
+NCPU=$(nproc)
 [ "$MEM" -lt 90 ] && ok "RAM : ${MEM}% utilisée" || bad "RAM : ${MEM}% utilisée"
 [ "$DISK" -lt 85 ] && ok "Disque : ${DISK}% utilisé" || bad "Disque : ${DISK}% utilisé"
-ok "Load : $LOAD"
+if awk "BEGIN{exit !($LOAD <= $NCPU * 1.5)}" 2>/dev/null; then
+    ok "Load : $LOAD"
+else
+    bad "Load : $LOAD (> 1,5 × $NCPU vCPU) — investiguer : pidstat 5 2 -u | grep -E 'containerd$|dockerd$' (piège connu : collecteur Netdata docker trop rapide, voir docs/netdata.md)"
+fi
 
 echo "== Fail2ban =="
 for j in sshd recidive; do
