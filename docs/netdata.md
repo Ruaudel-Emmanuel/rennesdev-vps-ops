@@ -23,6 +23,39 @@ Prometheus : stack mono-conteneur, ~200-300 Mo RAM, dashboards sans configuratio
 - `/var/run/docker.sock` (ro) : métriques de **tous les conteneurs** (n8n, umami, ollama, netdata lui-même)
 - `DISABLE_TELEMETRY=1` : télémétrie désactivée
 
+## Incident résolu — collecteur Docker qui martelait l'API (2026-09-21)
+
+**Symptôme** : load average ~5-6 en continu depuis le 10/09 (date du basculement
+Docker sur le snapshotter containerd), sans processus visible en `ps` —
+`containerd` et `dockerd` brûlaient chacun ~30-40 % CPU (≈ 40 h de CPU chacun
+en 11 jours). Surveillance et rappels restent basés sur Netdata : aucun impact
+utilisateur, mais ~2 cœurs gaspillés en permanence.
+
+**Diagnostic** : arrêt temporaire de Netdata → containerd/dockerd tombent à
+0,2 % CPU. Coupable : le collecteur go.d **docker** (job `local`, charts
+`docker_local.*`), qui interroge l'API Docker **toutes les secondes**
+(`/info`, `/images/json`, `/containers/json` avec filtres health).
+`/images/json` est devenu très coûteux avec le snapshotter containerd
+(store images 16 Go) → ~80 % de CPU combinés.
+
+**Correctifs appliqués** :
+1. `/var/lib/docker/volumes/netdata_netdataconfig/_data/go.d/docker.conf`
+   (créé) : job `local` avec `update_every: 30` (au lieu de 1 s).
+2. Healthcheck de **filebrowser** abaissé à 60 s (l'image impose 5 s par défaut
+   → ~17 000 spawns runc/jour). Override dans `~/filebrowser/docker-compose.yml` :
+   ```yaml
+   healthcheck:
+     test: ["CMD-SHELL", "/healthcheck.sh"]
+     interval: 60s
+     timeout: 5s
+     retries: 3
+   ```
+
+**Résultat** : containerd/dockerd à 0,1 % CPU, load 5,9 → ~1,4. Chartes
+`docker_local.*` toujours produites. ⚠️ Si l'image Netdata est mise à jour,
+re-vérifier la charge (le nightly peut changer les défauts du collecteur) :
+`pidstat 5 2 -u | grep -E 'containerd$|dockerd$'`.
+
 ## Coût mesuré au 2026-09-14
 
 - RAM : ~200 Mo (1,3 → 1,5 Go utilisée sur 7,6 Go)

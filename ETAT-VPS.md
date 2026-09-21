@@ -5,6 +5,10 @@
 
 ---
 
+## 🆕 Dernière session — 2026-09-21
+- **🔧 Incident détecté et résolu : containerd + dockerd brûlaient ~80 % de CPU (2 cœurs) en continu depuis le 10/09** — repéré via le load average 5,8-6,1 (sur 4 vCPU) alors que rien n'apparaissait en `ps`. Diagnostic : arrêt temporaire de Netdata → CPU des démons Docker tombe à 0,2 % → coupable = collecteur go.d **docker** de Netdata (job `local`, charts `docker_local.*`) qui interrogeait l'API Docker **toutes les secondes** (`/info`, `/images/json`, `/containers/json` filtres health) — `/images/json` est devenu très coûteux depuis le basculement Docker sur le snapshotter containerd (store 16 Go, note du 18/09). Fix : config `go.d/docker.conf` créée dans le volume `netdata_netdataconfig` (job `update_every: 30`) + healthcheck filebrowser 5 s → 60 s (override dans `~/filebrowser/docker-compose.yml`, l'image impose 5 s = ~17 000 spawns runc/jour). **Résultat : load 5,9 → 1,4, containerd/dockerd à 0,1 % CPU**, charts `docker_local.*` toujours produites, tous les services OK. Doc : `docs/netdata.md` du repo ops. ⚠️ À re-vérifier après toute mise à jour de l'image Netdata (nightly peut changer les défauts). Le moniteur Kuma « Netdata » a pu émettre une brève alerte DOWN/UP pendant le diagnostic (arrêt volontaire ~90 s).
+- Contrôle santé initial : tout vert (RAM 25 %, disque 61 %, Kopia snapshot 20/09 18:52, 6 timers actifs, ORDRES.md absent).
+
 ## 🆕 Dernière session — 2026-09-20 (3e partie)
 - **✅ Publicité GitHub maximisée (ordre utilisateur — visibilité pour recruteurs)** : grep secrets préalable sur chaque repo (aucun secret réel trouvé — fingerprints Kopia et `whsec_MASQUE` inoffensifs) puis passage en **public** via API : `Nav.rennesdev`, `Lecteur-PDF`, `Besoin-visio`, `RuaudelPhoto`. Restent privés : `git-ops-journal`, `VPS-Rennesdev.fr` (journals d'exploitation, détails infra) — choix défendu, à valider par l'utilisateur.
 - **⚠️ Découverte : `Lecteur-PDF` était archivé sur GitHub** (impossible d'y pousser les futures releases du test fermé Play) → désarchivé en même temps que la mise en public. 12 repos actifs publics désormais (vs 5 avant).
