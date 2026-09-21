@@ -9,6 +9,7 @@ description: Tout ce qui concerne GitHub sur le VPS rennesdev.fr — PAT, push s
 - **1 projet = 1 repo** dédié (jamais un sous-dossier d'un repo existant) — ex. `Nav.rennesdev` a son propre repo.
 - **Améliorer un projet = nouvelle branche** dédiée dans le repo du projet (pas de commit direct sur main pour les évolutions).
 - **Toutes les améliorations = commits commentés** (messages explicites).
+- **Vision (ordre 21/09)** : dynamique sans excès, autonomie maximale, attractif pour recruteurs sans travail phénoménal — toute automatisation doit ajouter de l'activité réelle et régulière, jamais du bot-spam cosmétique.
 
 ## PAT (token)
 - Emplacement : base n8n (conteneur `n8n_db`, **nom de base = `n8n`** — piège : `-d n8n_db` échoue, POSTGRES_DB=n8n ; POSTGRES_USER=n8n), workflow **« Push GitHub »** → nœud **« Config (PAT GitHub) »** (assignments[0].value de `nodes[1]`). C'est l'unique source ; les autres nœuds/workflows y font référence.

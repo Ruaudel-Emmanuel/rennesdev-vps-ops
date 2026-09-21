@@ -137,6 +137,8 @@
 8. **Rapport quotidien 08:00 Paris** sur Telegram (`vps-metrics-report.timer`) — vérifier dans le contrôle santé qu'il est actif.
 10. **Airtable forfait gratuit = 1 000 appels API/mois** (partagés entre les workflows) : tout workflow Airtable doit être économe — appels groupés (formule OR, batch records), cache staticData des listes, fréquence limitée, pause auto sur 429. Se référer au design des workflows « Diffusion » (16/09).
 
+12. **Vision GitHub (ordre 21/09)** : le GitHub doit être **dynamique sans excès** et se gérer **le plus autonome possible** — l'objectif est qu'il soit attractif pour un recruteur sans travail phénoménal de l'utilisateur. Règle de décision pour toute automatisation GitHub : est-ce que ça ajoute de l'activité réelle et régulière sans créer de bruit ni de charge manuelle ? Privilégier l'auto-merge, les auto-issues, les rapports ; éviter le bot-spam cosmétique.
+
 ## ⏳ En attente (actions utilisateur)
 > ℹ️ Pourquoi « hors VPS » : ce n'est pas que le PC est plus sûr — c'est de la redondance (le VPS = point de défaillance unique ; sans keystore, l'app est figée à jamais sur le Play Store). La copie existe déjà via le snapshot Kopia hebdo de `/home/ubuntu` vers le PC — l'enjeu est de vérifier qu'un restore fonctionne.
 - **lecteur-pdf : Play Console** — créer l'app « Lecteur PDF » (⚠️ package = `fr.rennesdev.lecteurpdf`), upload AAB v1.0.0 en Tests internes, fiche store + captures, déclaration « aucune donnée ». Guide : `PLAY-STORE.md` du repo `Lecteur-PDF`.
