@@ -64,9 +64,11 @@ if [ "$(systemctl is-failed vps-backup.service 2>/dev/null)" = "failed" ]; then
     alert "vps-backup.service: dernier passage en échec ($(systemctl show -p ExecMainExitTimestamp --value vps-backup.service))"
 fi
 
-# Rien à signaler -> on sort
+# Rien à signaler -> watchdog vert : clôturer les issues d'incidents ouvertes
 if [ ${#ALERTS[@]} -eq 0 ]; then
     rm -f "$STATE_DIR"/last-alert-* 2>/dev/null
+    /usr/local/bin/vps-issue.sh close-prefix "Watchdog VPS :" \
+        "Anomalie résolue — watchdog vert le $(date -Iseconds). (clôture automatique)" >/dev/null 2>&1 || true
     exit 0
 fi
 
@@ -112,3 +114,10 @@ if [ "$http" = "200" ]; then
 else
     logger -t vps-watchdog "ERREUR envoi Telegram (HTTP $http) — alerte perdue: ${FRESH[*]}"
 fi
+
+# Issues GitHub pour chaque alerte fraîche (dédoublonnage par titre dans vps-issue.sh)
+for a in "${FRESH[@]}"; do
+    /usr/local/bin/vps-issue.sh open "Watchdog VPS : $a" \
+        "Alerte du $(date -Iseconds) sur $HOSTNAME.\n\nAction : diagnostiquer, corriger, puis l'issue est clôturée automatiquement au prochain passage vert du watchdog." \
+        >/dev/null 2>&1 || logger -t vps-watchdog "vps-issue: échec création issue ($a)"
+done
