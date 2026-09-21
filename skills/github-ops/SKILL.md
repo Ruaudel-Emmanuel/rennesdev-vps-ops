@@ -40,6 +40,14 @@ curl -s -X POST https://n8n.rennesdev.fr/webhook/github-push \
 - NIVEAU1 (7 j) : rennesdev, rennesdev-vps-ops, RuaudelEmmanuel.github.io, RuaudelPhoto.
 - NIVEAU2 (14 j) : Rennesdev-api, Fiscale-vps, Trombi, construction-site-tracker, Besoin-visio, local_contextual_ai, ai_gemma_service, surveillance-tarifaire.
 
+## CI, rulesets & templates (mis en place 21/09)
+- **Review solo impossible** : GitHub refuse l'auto-approval de ses propres PR → la protection de main passe par des **checks CI requis** + `allow_auto_merge` (dépôt PATCH) au lieu de « 1 review approuvée ».
+- **Ruleset `construction-site-tracker`** (id 23667839) : cible `~DEFAULT_BRANCH` (⚠️ PAS `~ALL` — avec checks requis, `~ALL` bloque même les push de branches de travail), règles = `deletion` + `non_fast_forward` + `required_status_checks` (contexte `build`, integration_id 15368 = GitHub Actions). Ruleset doit exister déjà (PUT = update OK ici ; l'ancien PATCH 404 du 18/09 venait d'un problème de droits/état).
+- **CI Android (construction-site-tracker)** : `.github/workflows/ci.yml` — checkout → JDK 21 (temurin) → **Node 22** (⚠️ Capacitor 8 exige ≥ 22) → cache Gradle (`gradle/actions/setup-gradle@v4`) → `npm ci` (⚠️ échoue si lock désynchronisé avec package.json — régénérer avec `npm install`) → **`npx cap sync android`** (génère `capacitor-cordova-android-plugins` et les assets web, gitignés) → `./gradlew assembleDebug`. Le build debug ne dépend pas du keystore (guard `exists()`).
+- **minSdk 24** (plugin Camera ioncamera 1.0.2) — changement fonctionnel du 21/09, s'applique au prochain build release.
+- **Templates GitHub** mergés sur Nav.rennesdev, Lecteur-PDF, construction-site-tracker : `.github/ISSUE_TEMPLATE/` (bug.yml, idee.yml, config.yml blank_issues_enabled: false) + `PULL_REQUEST_TEMPLATE.md` (checklist CI/doc/secret). À déployer sur les autres repos actifs si demandé.
+- **À venir (phase B)** : workflow n8n « alerte VPS → issue GitHub » (watchdog, push échoué, journal) avec auto-close par le commit de fix ; radar de cadence → suggestion d'issue roadmap.
+
 ## Inventaire & hygiène
 - 97 dépôts → **79 archivés** (15/09), **18 actifs** conservés. Doublons historiques : Fiscale-vps/Fisclale-vps/Fiscale_vps, Devis-Python/Devis-Python-Steamlit.
 - Repos récents : `Lecteur-PDF` (18/09), `VPS-Rennesdev.fr` (journal VPS, timer quotidien 23h), `git-ops-journal` (gestion du compte + automatisations), `construction-site-tracker` (Suivi Interventions, Play Store).
