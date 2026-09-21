@@ -93,3 +93,12 @@ docker exec n8n_workflow n8n import:workflow --input=/tmp/wf.json
 docker exec n8n_db psql -U n8n -c "UPDATE workflow_entity SET active=true, \"activeVersionId\"=\"versionId\" WHERE name='Push GitHub';"
 docker restart n8n_workflow
 ```
+
+## Rotation du PAT (procédure éprouvée, 2026-09-21)
+
+1. L'utilisateur génère un nouveau token fine-grained (Contents RW, Pull requests RW, Administration RW) et le colle dans le workflow n8n « Push GitHub » (nœud Config) via l'interface.
+2. L'assistant le propage par SQL aux autres workflows — **jamais affiché en session** :
+   - `GitHub — descriptions auto` (3 occurrences) et `Agent Telegram` (1 occurrence) : remplacement de la chaîne de l'ancien token dans `nodes`, snapshot inséré dans `workflow_history` + `"activeVersionId"` pointé dessus (pièges : colonnes `"versionId"`/`"workflowId"` à QUOTER, id de workflow ≠ `activeVersionId`), puis `docker restart n8n_workflow`.
+3. Vérification : ancien token (complet) absent des 3 workflows, nouveau présent (5×), `/healthz` 200, push réel de test via le webhook.
+4. L'utilisateur **révoque ensuite l'ancien token** côté GitHub (Settings → Developer settings).
+5. Déclencheur de rotation : tout affichage accidentel du token en session (4 occurrences documentées à ce jour).
