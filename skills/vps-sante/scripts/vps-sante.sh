@@ -21,9 +21,9 @@ for d in umami n8n; do
         || bad "$d.rennesdev.fr : edge=$edge origine=$org"
 done
 
-# Vhosts récents — 401 SANS auth = basic auth en place (nav, uptime) ; 200 = page login (fichiers)
-echo "== HTTPS vhosts récents (nav / uptime / fichiers) =="
-for entry in "nav:401" "uptime:401" "fichiers:200"; do
+# Vhosts récents — 401 SANS auth = basic auth en place (nav, uptime, spectre) ; 200 = page login (fichiers)
+echo "== HTTPS vhosts récents (nav / uptime / fichiers / spectre) =="
+for entry in "nav:401" "uptime:401" "fichiers:200" "spectre:401"; do
     d=${entry%%:*}; exp=${entry##*:}
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$d.rennesdev.fr")
     [ "$code" = "$exp" ] && ok "$d.rennesdev.fr : $code (attendu $exp)" \
