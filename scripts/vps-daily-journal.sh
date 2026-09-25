@@ -140,7 +140,7 @@ if git push "https://x-access-token:${TOKEN}@github.com/${LOGIN}/VPS-Rennesdev.f
     chown -R ubuntu:ubuntu "$REPO_DIR"
     /usr/local/bin/vps-issue.sh close "Journal VPS : push échoué" \
         "Push du journal du $JOUR réussi — incident résolu (clôture automatique)." >/dev/null 2>&1 || true
-    $TG "📔 Journal VPS $JOUR publié : $NB_DOCKER conteneurs, RAM $RAM, disque $DISK. APT: $( [ -n "$APT_INST" ] && echo "$(echo "$APT_INST" | wc -l) install(s)" || echo "rien d'installé" ), $( [ -n "$APT_UPG" ] && echo "$(echo "$APT_UPG" | wc -l) maj" || echo "pas de maj" )."
+    # $TG "📔 Journal VPS $JOUR publié : $NB_DOCKER conteneurs, RAM $RAM, disque $DISK. APT: $( [ -n "$APT_INST" ] && echo "$(echo "$APT_INST" | wc -l) install(s)" || echo "rien d'installé" ), $( [ -n "$APT_UPG" ] && echo "$(echo "$APT_UPG" | wc -l) maj" || echo "pas de maj" )."
 else
     chown -R ubuntu:ubuntu "$REPO_DIR"
     /usr/local/bin/vps-issue.sh open "Journal VPS : push échoué" \

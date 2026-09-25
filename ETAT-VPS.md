@@ -5,9 +5,10 @@
 
 ---
 ## 🆕 Dernière session — 2026-09-25
-- **✅ Ordre Telegram « je ne veux plus avoir cette alerte » traité** : le rapport de santé VPS → Telegram (message 📊 du lundi 08:00) est **entièrement désactivé**. Source identifiée : le **timer systemd `vps-metrics-report.timer`** (rapport via `/usr/local/bin/vps-metrics-report.sh` → `vps-tg.sh`) — le workflow n8n « Alertes VPS (watchdog) » n'émet rien (inerte, webhook non appelé par le watchdog). Action : `systemctl disable --now vps-metrics-report.timer` (`disabled`/`inactive`, prochain tir lundi 28/09 annulé). Le **watchdog** (anomalies seules, 15 min) et le **journal quotidien 23:00** (📔 résumé GitHub + Telegram) restent actifs — signaler si l'un d'eux doit aussi être coupé.
-- Le passage hebdomadaire du 25/09 (quotidien → lundi) devient sans objet : plus aucun rapport de santé programmé.
-- Rappel : `vps-metrics-report.sh` et le `.timer` restent en place (réactivation immédiate possible si l'utilisateur change d'avis).
+- **✅ Ordre Telegram « je ne veux plus avoir cette alerte » traité, puis décision utilisateur ajustée** : après désactivation du rapport de santé (timer `vps-metrics-report`), l'utilisateur a demandé de **réactiver le rapport VPS, mais uniquement le lundi** → `systemctl enable --now vps-metrics-report.timer` (`enabled`/`active`, tir **lundi 08:00 Europe/Paris**, prochain : 28/09). L'émetteur identifié était bien ce timer systemd (le workflow n8n « Alertes VPS (watchdog) » est inerte — webhook non appelé par le watchdog).
+- **✅ Journal du soir allégé** : le message Telegram 📔 « Journal VPS publié » (23:00) est **coupé** (`$TG` commenté dans `/usr/local/bin/vps-daily-journal.sh` ligne 143) — le **push GitHub journalier vers le repo privé `VPS-Rennesdev.fr` est conservé**, ainsi que l'alerte ⚠️ en cas de push échoué.
+- **✅ Rappels de backup : un seul conservé** — le rappel `vps-backup-reminder` (**dimanche 12:00**, avant le backup 19:30) est l'unique rappel programmé, validé tel quel. Les messages ✅/❌ de fin de backup (confirmations d'action) et les alertes watchdog Kopia (anomalies uniquement) ne sont pas des rappels et restent actifs.
+- **Messages Telegram périodiques désormais** : watchdog (anomalies, 15 min), rapport 📊 lundi 08:00, rappel backup dimanche 12:00, confirmations backup, journal (push GitHub seulement), github-weekly vendredi 19:00.
 
 ## 🆕 Dernière session — 2026-09-24
 - **✅ Bug « gros bouton bleu ne fait rien » (retours testeurs Play, ordre 23/09) corrigé sur Lecteur-PDF** : cause réelle trouvée et **reproduite en Chromium piloté via browserless** — le div `#viewer` (plein écran, `position:absolute`) est déclaré après `#empty` dans le DOM → il peint **au-dessus** du bouton bleu et interceptait tous les taps (démontré : un clic Puppeteer sur le bouton n'atteint jamais le bouton ; un `input.click()` direct déclenche bien le sélecteur). Fix : `z-index: 5` sur `#empty`. **Durcissements** : pdfjs renommé `.mjs` → `.js` (MIME garanti `application/javascript` — un module ES servi en `octet-stream` est refusé et tuait tout le JS de la page, reproduit également) ; moteur PDF chargé dynamiquement avec handlers toujours attachés + **message d'erreur visible** si échec. **Validation réelle : clic bouton → sélecteur de fichier s'ouvre ; PDF synthétique injecté → rendu canvas + « 1 / 1 », zéro erreur JS.**
@@ -136,12 +137,12 @@
 | Timer | Horaires (Europe/Paris) | Rôle |
 |---|---|---|
 | `vps-watchdog` | toutes les 15 min | anomalies → Telegram (`/usr/local/bin/vps-watchdog.sh`) |
-| ~~`vps-metrics-report`~~ | ~~lundi 08:00~~ | **désactivé le 25/09** (ordre utilisateur « je ne veux plus cette alerte ») — timer `disabled`/`inactive`, script conservé |
+| `vps-metrics-report` | **lundi 08:00** | rapport métriques → Telegram (`/usr/local/bin/vps-metrics-report.sh`) — **réactivé le 25/09 sur demande (lundi uniquement)** |
 | `vps-ollama-unload` | tous les jours 19:15 | décharge les modèles ollama avant backup |
 | `vps-backup` | dimanche 19:30 | backup Kopia complet (PC allumé requis) |
 | `vps-backup-reminder` | dimanche 12:00 | rappel Telegram (PC joignable ? dépôt ? âge snapshot) |
 | `github-weekly` | vendredi 19:00 | rapport hebdo GitHub → repo `git-ops-journal` + Telegram |
-| `vps-daily-journal` | tous les jours 23:00 | journal quotidien du VPS → repo `VPS-Rennesdev.fr` + Telegram |
+| `vps-daily-journal` | tous les jours 23:00 | journal quotidien du VPS → repo `VPS-Rennesdev.fr` (**message Telegram coupé le 25/09**) |
 
 ## Backups (Kopia)
 - Chaîne : `vps-backup.timer` → `kopia-backup.sh` (staging = dump umami + pg_dump n8n + configs, puis snapshots : `/var/lib/docker/volumes`, `/home/ubuntu`, `/etc/caddy`) → **dépôt Kopia sur le PC Windows** (`super-pc-vert`, 100.118.76.30, port 51515, TLS cert RSA fixe, fingerprint `46d81925…`).
@@ -152,7 +153,7 @@
 - VPS `vps-5532a57a` = 100.75.226.13 ↔ PC `super-pc-vert` = 100.118.76.30 (connexion directe, ~20 ms).
 
 ## 🧠 PRÉFÉRENCES UTILISATEUR (mémoire permanente)
-9. **Pas d'alerte Telegram pour les situations normales** : PC éteint = pas d'alerte Kopia. Une alerte = quelque chose à faire. (Le rapport de santé 📊 08:00 a été **supprimé le 25/09** sur demande — plus aucun rapport périodique de santé.)
+9. **Pas d'alerte Telegram pour les situations normales** : PC éteint = pas d'alerte Kopia. Une alerte = quelque chose à faire. Un **seul** rappel de backup (dimanche 12:00, avant le backup 19:30). Journal du soir : push GitHub uniquement, plus de message Telegram (25/09).
 11. **Règle GitHub (ordre 19/09)** : tout nouveau projet = **son propre repo** (jamais un sous-dossier d'un repo existant) **et naît avec son README** (ordre 19/09) ; toute amélioration d'un projet = **nouvelle branche** dédiée dans le repo du projet ; toutes les améliorations = **commits commentés**.
 1. **Canal d'alerte = Telegram** : bot `@Vosmanubot` (Bot-vps), chat `TG_CHAT_ID=8634051625`, config `/etc/vps-watchdog-telegram.env` (root 600). JAMAIS de token dans un fichier commité ou ce journal.
 2. **Chaque nouveau workflow/création → repo GitHub avec README** : `github.com/Ruaudel-Emmanuel/rennesdev-vps-ops` (privé, local : `~/projects/rennesdev-vps-ops`). **Push sans PAT en session** : webhook n8n `POST https://n8n.rennesdev.fr/webhook/github-push` — PAT extrait de la base n8n (`n8n_db`, table `workflow_entity`, workflow « Push GitHub ») directement en variable shell du curl, jamais affiché ni sur disque. Voir `docs/push-github.md`.
@@ -161,7 +162,7 @@
 5. **Aucun secret côté assistant** ; secrets → fichiers root-only sur le VPS.
 6. **Au début de CHAQUE session : lire `/home/ubuntu/ORDRES.md`** (ordres via bot `@Vosmanubot`, message libre = ordre), les traiter, marquer ✅. `/ordres` liste, `/ok` vide.
 7. **Maintenance du journal** : `ETAT-VPS.md` = état courant + dernière session ; le 1er de chaque mois → déplacer les entrées datées du mois écoulé dans `ETAT-VPS-archive-<AAAA-MM>.md` puis pusher les deux sur GitHub. Skill `vps-sante` (`~/.agents/skills/vps-sante/`) = procédure standard de contrôle de santé. **Par sujet → skills dédiés** (chargés seulement quand le sujet sort) : `github-ops`, `n8n-ops`, `stripe-ops`, `tally-ops` (`~/.agents/skills/`).
-8. ~~Rapport quotidien 08:00 Paris~~ — **désactivé le 25/09** (ordre utilisateur). Ne pas réactiver sans demande explicite. Le watchdog (anomalies) et le journal 23:00 (📔) restent les seuls messages Telegram périodiques.
+8. **Rapport hebdomadaire lundi 08:00 Paris** sur Telegram (`vps-metrics-report.timer`) — **réactivé le 25/09** (lundi uniquement, décision utilisateur). Vérifier qu'il est actif au contrôle santé.
 10. **Airtable forfait gratuit = 1 000 appels API/mois** (partagés entre les workflows) : tout workflow Airtable doit être économe — appels groupés (formule OR, batch records), cache staticData des listes, fréquence limitée, pause auto sur 429. Se référer au design des workflows « Diffusion » (16/09).
 
 12. **Vision GitHub (ordre 21/09)** : le GitHub doit être **dynamique sans excès** et se gérer **le plus autonome possible** — l'objectif est qu'il soit attractif pour un recruteur sans travail phénoménal de l'utilisateur. Règle de décision pour toute automatisation GitHub : est-ce que ça ajoute de l'activité réelle et régulière sans créer de bruit ni de charge manuelle ? Privilégier l'auto-merge, les auto-issues, les rapports ; éviter le bot-spam cosmétique.
