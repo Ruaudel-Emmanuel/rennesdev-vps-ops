@@ -4,7 +4,12 @@
 > Rotation : le 1er de chaque mois, les entrées du mois écoulé partent dans une nouvelle archive.
 
 ---
+## 🆕 Dernière session — 2026-10-04
+- **✅ Workflow n8n « GitHub Auditor » republié et fixé** : le workflow existait depuis le 02/10 mais **toutes les exécutions échouaient en timeout** (300 s runner dépassé) — chaque dépôt actif déclenchait un appel individuel à Ollama (~18 appels × 30-90 s). **Correctif** : passage en **analyse groupée unique** — tous les repos actifs sont envoyés en UN seul prompt Ollama (`qwen2.5:3b`, `num_ctx: 16384`, `keep_alive: 0`). Invariant n8n réparé (`versionId` = `activeVersionId`), nouveau snapshot + outbox + restart, trigger « Horloge (06h00) » réactivé. Batching = une seule inférence (~30-160 s) → tient dans le timeout runner.
+- **✅ Fichiers publiés sur GitHub** : `workflow.json` (export frais du workflow, avec le code batching + prompt complet « Architecte Collaborateur ») + `README.md` mis à jour → pushé via webhook sur `Ruaudel-Emmanuel/GitHub-Auditor` (commit `95b6cda`).
+
 ## 🆕 Dernière session — 2026-09-25
+
 - **✅ Ordre Telegram « je ne veux plus avoir cette alerte » traité, puis décision utilisateur ajustée** : après désactivation du rapport de santé (timer `vps-metrics-report`), l'utilisateur a demandé de **réactiver le rapport VPS, mais uniquement le lundi** → `systemctl enable --now vps-metrics-report.timer` (`enabled`/`active`, tir **lundi 08:00 Europe/Paris**, prochain : 28/09). L'émetteur identifié était bien ce timer systemd (le workflow n8n « Alertes VPS (watchdog) » est inerte — webhook non appelé par le watchdog).
 - **✅ Journal du soir allégé** : le message Telegram 📔 « Journal VPS publié » (23:00) est **coupé** (`$TG` commenté dans `/usr/local/bin/vps-daily-journal.sh` ligne 143) — le **push GitHub journalier vers le repo privé `VPS-Rennesdev.fr` est conservé**, ainsi que l'alerte ⚠️ en cas de push échoué.
 - **✅ Rappels de backup : un seul conservé** — le rappel `vps-backup-reminder` (**dimanche 12:00**, avant le backup 19:30) est l'unique rappel programmé, validé tel quel. Les messages ✅/❌ de fin de backup (confirmations d'action) et les alertes watchdog Kopia (anomalies uniquement) ne sont pas des rappels et restent actifs.
