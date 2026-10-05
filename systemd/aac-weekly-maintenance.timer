@@ -1,0 +1,10 @@
+[Unit]
+Description=AAC — exécution chaque lundi à 05h00 (Europe/Paris)
+
+[Timer]
+OnCalendar=Mon *-*-* 05:00:00 Europe/Paris
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

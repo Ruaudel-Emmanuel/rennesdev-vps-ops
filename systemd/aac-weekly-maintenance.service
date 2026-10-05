@@ -1,0 +1,14 @@
+[Unit]
+Description=AAC — maintenance hebdomadaire (export workflows, nettoyage PRs, journal)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/aac-weekly-maintenance.sh
+User=root
+Nice=10
+IOSchedulingClass=2
+IOSchedulingPriority=7
+StandardOutput=append:/var/log/aac-weekly-maintenance.log
+StandardError=append:/var/log/aac-weekly-maintenance.log
