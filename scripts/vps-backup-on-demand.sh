@@ -27,6 +27,7 @@ log "=== lancement manuel ==="
 # --- 1. Serveur Kopia sur le PC ---
 pc_ok() { timeout 3 bash -c "echo > /dev/tcp/$PC_IP/51515" 2>/dev/null; }
 
+# --- Preflight A : PC connecté ---
 if ! pc_ok; then
     log "PC:51515 fermé — tentative de démarrage distant via SSH"
     if [ -f "$SSH_KEY" ]; then
@@ -50,12 +51,22 @@ if ! pc_ok; then
 fi
 log "PC:51515 ouvert"
 
-# --- 2. Dépôt connecté ? ---
+# --- Preflight B : Dépôt Kopia connecté et fonctionnel ---
 if ! kopia repository status &>/dev/null; then
     tg "❌ Sauvegarde ANNULÉE : dépôt Kopia non connecté (fingerprint du certificat PC changé ?).
 👉 Refaire côté VPS : sudo kopia repository connect server ... (voir ETAT-VPS.md)"
     log "échec: dépôt non connecté"
     exit 1
+fi
+log "Dépôt Kopia connecté"
+
+# Vérification que le dépôt répond vraiment (snapshot test)
+KOPIA_TEST=$(kopia snapshot list --all 2>/dev/null | tail -1)
+if [ -z "$KOPIA_TEST" ]; then
+    tg "⚠️ Le dépôt Kopia répond mais aucun snapshot existant — la sauvegarde sera initiale."
+    log "avertissement: dépôt vide (premier backup?)"
+else
+    log "Dernier snapshot existant : $KOPIA_TEST"
 fi
 
 # --- 3. Sauvegarde (service systemd, on attend la fin) ---
