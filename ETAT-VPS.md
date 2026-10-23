@@ -1,210 +1,64 @@
 # 📋 État du VPS rennesdev.fr — État courant
-> Journal allégé depuis le 2026-09-14 (rotation, règle n°7) : ce fichier décrit l'état **actuel** uniquement.
-> Historique complet : `ETAT-VPS-archive-2026-09.md` (et suivants, un par mois) — aussi sur GitHub.
-> Rotation : le 1er de chaque mois, les entrées du mois écoulé partent dans une nouvelle archive.
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
 
----
-## 🆕 Dernière session — 2026-10-04
-- **✅ Workflow n8n « GitHub Auditor » republié et fixé** : le workflow existait depuis le 02/10 mais **toutes les exécutions échouaient en timeout** (300 s runner dépassé) — chaque dépôt actif déclenchait un appel individuel à Ollama (~18 appels × 30-90 s). **Correctif** : passage en **analyse groupée unique** — tous les repos actifs sont envoyés en UN seul prompt Ollama (`qwen2.5:3b`, `num_ctx: 16384`, `keep_alive: 0`). Invariant n8n réparé (`versionId` = `activeVersionId`), nouveau snapshot + outbox + restart, trigger « Horloge (06h00) » réactivé. Batching = une seule inférence (~30-160 s) → tient dans le timeout runner.
-- **✅ Fichiers publiés sur GitHub** : `workflow.json` (export frais du workflow, avec le code batching + prompt complet « Architecte Collaborateur ») + `README.md` mis à jour → pushé via webhook sur `Ruaudel-Emmanuel/GitHub-Auditor` (commit `95b6cda`).
+## 📌 Résumé condensé de l'historique
 
-## 🆕 Dernière session — 2026-09-25
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.465 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
 
-- **✅ Ordre Telegram « je ne veux plus avoir cette alerte » traité, puis décision utilisateur ajustée** : après désactivation du rapport de santé (timer `vps-metrics-report`), l'utilisateur a demandé de **réactiver le rapport VPS, mais uniquement le lundi** → `systemctl enable --now vps-metrics-report.timer` (`enabled`/`active`, tir **lundi 08:00 Europe/Paris**, prochain : 28/09). L'émetteur identifié était bien ce timer systemd (le workflow n8n « Alertes VPS (watchdog) » est inerte — webhook non appelé par le watchdog).
-- **✅ Journal du soir allégé** : le message Telegram 📔 « Journal VPS publié » (23:00) est **coupé** (`$TG` commenté dans `/usr/local/bin/vps-daily-journal.sh` ligne 143) — le **push GitHub journalier vers le repo privé `VPS-Rennesdev.fr` est conservé**, ainsi que l'alerte ⚠️ en cas de push échoué.
-- **✅ Rappels de backup : un seul conservé** — le rappel `vps-backup-reminder` (**dimanche 12:00**, avant le backup 19:30) est l'unique rappel programmé, validé tel quel. Les messages ✅/❌ de fin de backup (confirmations d'action) et les alertes watchdog Kopia (anomalies uniquement) ne sont pas des rappels et restent actifs.
-- **Messages Telegram périodiques désormais** : watchdog (anomalies, 15 min), rapport 📊 lundi 08:00, rappel backup dimanche 12:00, confirmations backup, journal (push GitHub seulement), github-weekly vendredi 19:00.
+**Services conteneurisés** (réseau Docker `apps`) : n8n v2.44.6, Ollama, Browserless, FileBrowser, Netdata, Uptime‑Kuma, Nav.rennesdev, Umami (app+db). PG 17 pour n8n, PG 16 pour Umami.
 
-## 🆕 Dernière session — 2026-09-24
-- **✅ Bug « gros bouton bleu ne fait rien » (retours testeurs Play, ordre 23/09) corrigé sur Lecteur-PDF** : cause réelle trouvée et **reproduite en Chromium piloté via browserless** — le div `#viewer` (plein écran, `position:absolute`) est déclaré après `#empty` dans le DOM → il peint **au-dessus** du bouton bleu et interceptait tous les taps (démontré : un clic Puppeteer sur le bouton n'atteint jamais le bouton ; un `input.click()` direct déclenche bien le sélecteur). Fix : `z-index: 5` sur `#empty`. **Durcissements** : pdfjs renommé `.mjs` → `.js` (MIME garanti `application/javascript` — un module ES servi en `octet-stream` est refusé et tuait tout le JS de la page, reproduit également) ; moteur PDF chargé dynamiquement avec handlers toujours attachés + **message d'erreur visible** si échec. **Validation réelle : clic bouton → sélecteur de fichier s'ouvre ; PDF synthétique injecté → rendu canvas + « 1 / 1 », zéro erreur JS.**
-- Pipeline complet : branche `fix/bouton-ouvrir-pdf` (règle 11) → push webhook (PAT jamais en session) → **PR #3** (body corrigé) → **CI `build` verte** → merge → branche distante supprimée → **release GitHub v1.0.2** (versionCode 3, AAB 3,5 Mo + APK 3,7 Mo signés, apksigner vérifié). ⚠️ Piège au passage : l'upload d'asset de release doit passer par `uploads.github.com`, pas `api.github.com` ; et `page.click()` Puppeteer est un **testeur d'accessibilité discret** — il a détecté le bug d'occlusion qu'un test visuel n'aurait pas vu.
-- Reste utilisateur : téléverser l'AAB v1.0.2 dans la piste **Test fermé** de la Play Console (les 14 jours continuent, l'itération de version ne casse pas la piste).
+**Ollama** — modèles : qwen2.5:7b (bot IA), qwen2.5:3b (analyses), llama3.2:3b. `OLLAMA_KEEP_ALIVE=10m`.
 
-## 🆕 Dernière session — 2026-09-22
-- **⚠️ Incident « Dépendances GitHub — échec de la liste des repos : 401 » résolu** : le workflow deps (« GitHub — descriptions auto ») appelait `/user/repos` avec un **PAT mort** — la rotation du 21/09 avait été **écrasée par une écriture postérieure** (piège documenté : fichier local périmé). Vérification complète : « GitHub — descriptions auto » ×3 et « Agent Telegram » ×1 = ancien token (401 sur l'API), seul « Push GitHub » avait le bon (200). **Re-propagation SQL** (snapshot `workflow_history` + `activeVersionId` + restart n8n, healthz 200) : les 2 workflows re-conformes, `/user/repos` avec le PAT courant = 200. **Nouveau réflexe (à ajouter à toute rotation)** : vérifier la conformité des tokens de TOUS les workflows après propagation (grep comparé au PAT courant). Prochain run deps lundi 22h00 pour confirmation bout-en-bout.
-- **✅ SPECTRE créé et déployé (ordres 21/09 — le projet n'existait pas, création selon la vision en réserve)** : analyse de contenu par IA avec **les 2 features demandées intégrées d'emblée** — (1) **onglet « Texte collé »** (coller le contenu d'une page web), (2) **onglet « Document »** upload PDF/MD/TXT ≤ 20 Mo (PDF via `pdftotext`/poppler). 3e mode : URL rendue par **Browserless** (Chromium headless, réseau `apps`, `domcontentloaded`). IA : **OpenRouter** si `/etc/openrouter-key.txt` (modèle `OPENROUTER_MODEL`, défaut `qwen/qwen-2.5-7b-instruct:free`), **fallback auto Ollama qwen2.5:3b** (`keep_alive: 0`) tant que la clé n'existe pas. Texte plafonné **3 000 car.** + `num_ctx 4096` (6 000 car. dépassait 95 s d'eval CPU → timeout). Zéro dep npm, image `node:22-alpine`+poppler, conteneur `spectre` (127.0.0.1:8087, réseau `apps`, mem_limit 512 m), `.env` local pour `BROWSERLESS_TOKEN` (gitigné). **Tests réels OK** : texte collé 15 s, MD 11 s, PDF facture 14 s, URL Wikipedia 76 s (résumé 5 points), erreurs propres (URL invalide, type non supporté). Repo **public `SPECTRE`** créé + poussé via webhook, README complet. **Vhost Caddy `spectre.rennesdev.fr` ajouté** (basic auth, credentials `/etc/caddy/spectre-auth.txt` root 600, config validée + reload OK) — **reste utilisateur : record DNS A `spectre.rennesdev.fr`** (proxy orange) puis restart Caddy pour le cert.
-- Leçon latence : Ollama CPU = eval du prompt ~15 tok/s → 3 000 car. ≈ 60-70 s au total, à garder sous les 100 s Cloudflare ; tout texte plus long exigera OpenRouter.
+**Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30 (rappel 12h00). Stocke volumes docker + /home/ubuntu + /etc/caddy.
 
-## 🆕 Dernière session — 2026-09-21 (7e partie)
-- **✅ Mega-readme v2 (ordres : métriques + bilinguisme)** :README du repo profil réécrit — **section Métriques** (impact client : 5-10 h/sem par dirigeant, 1-5 h/sem par brique du catalogue de 15 briques, devis 48 h → 15 min, erreurs réduites ; infra en chiffres : 10 conteneurs, CI 100 % des PR, deps auto-mergées hebdo, journal auto, incidents auto, backups chiffrés) + **version bilingue FR/EN** avec sélecteur d'ancre en haut. **Le lien portfolio a été corrigé par l'utilisateur lui-même sur GitHub** (2 commits « Fix portfolio link ») : pointe désormais vers **https://rennesdev.fr/portofolio.html** (vérifié : 200) — le README garde ce lien (exception assumée à l'anonymat : profil vitrine, choix utilisateur).
-- ⚠️ **PAT GitHub affiché une 4e fois en session 21/09** (git pull mal formé — URL sans hôte — sortie d'erreur complète avec token). Rien sur disque, rien commité. **Rotation recommandée** : l'utilisateur génère un nouveau token fine-grained, le colle dans « Push GitHub », l'assistant le propage par SQL aux autres nœuds.
-- Le repo `RuaudelEmmanuel.github.io` = **ancien site, conservé volontairement** (décision utilisateur 21/09) : le QR code de sa carte de visite renvoie vers ce site ; sur sa page d'accueil un bouton renvoie vers rennesdev.fr. Migration totale le jour du changement de carte de visite — ne pas toucher au repo.
-- **✅ PAT GitHub roté et déployé partout (clôture de la rotation)** : l'utilisateur a collé le nouveau token dans « Push GitHub » ; propagation SQL aux 5 occurrences (« GitHub — descriptions auto » ×3, « Agent Telegram » ×1) avec snapshot `workflow_history` + `activeVersionId` + restart n8n (healthz 200) ; ancien token vérifié **absent** des 3 workflows ; procédure documentée dans `docs/push-github.md` (pièges : id de workflow ≠ activeVersionId ; colonnes camelCase à quoter en SQL) ; test réel : push ops OK avec le nouveau token. **✅ Ancien token révoqué par l'utilisateur le 21/09 — rotation entièrement close.**
-- **✅ Mega-readme profil (ordre utilisateur)** : repo public **`Ruaudel-Emmanuel`** (nom exact du login = README affiché sur la page de profil) créé + `README.md` poussé — missions/objectifs, stacks en badges, **5 projets phares liés** (Nav.rennesdev, Lecteur-PDF, construction-site-tracker, rennesdev-vps-ops, surveillance-tarifaire), section « ce GitHub s'administre tout seul », cartes stats/streak, contact. Grep secrets = OK. Topics ajoutés. Clone local `~/projects/Ruaudel-Emmanuel`. **Utilisateur : pins posés + lien portfolio corrigé en direct sur GitHub.**
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, auto-update 🤖 04h00, metrics 📊 lun 08:00, ollama-unload 🧠 19:15, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, github-weekly 📈 ven 19:00, daily-journal 📝 23h00.
 
-## 🆕 Dernière session — 2026-09-21 (6e partie)
-- **✅ CI sur Lecteur-PDF (suite, ordre « toujours se demander si automatisable »)** : workflow CI mergé via PR #2 (même gabarit que construction-site-tracker : JDK 21, Node 22, `npm ci`, `npx cap sync android`, `assembleDebug`) → **check `build` requis** (ruleset 23774769 : `deletion` + `non_fast_forward` + required check, cible `~DEFAULT_BRANCH`) + `allow_auto_merge` → **2e repo en auto-merge complet des PR deps** (le workflow deps scanne les repos dynamiquement via `/user/repos`). Fix au passage : **`org.gradle.java.home` (chemin du VPS) commité dans `android/gradle.properties`** → invalide sur les runners GitHub, retiré. Vérifié : `npm ci` local OK, CI verte sur la PR et sur main.
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
 
-## 🆕 Dernière session — 2026-09-21 (5e partie)
-- **✅ Suite (ordres « . » = continuation)** : **templates déployés sur les 11 repos actifs** (les 3 vitrines + rennesdev-vps-ops #3, VPS-Rennesdev.fr #1, git-ops-journal #1, Besoin-visio #1, RuaudelPhoto #1, rennesdev #1, Fiscale-vps #4, surveillance-tarifaire #2 — toutes mergées, vérifié 11/11). 2 rulesets supplémentaires relaxés au passage : **Fiscale-vps** (23605002) et **surveillance-tarifaire** (23605165) avaient « 1 review » + cible `~ALL` (bloquait même le push de branche) → reconfigurés : cible `~DEFAULT_BRANCH`, règles `deletion` + `non_fast_forward`, review retirée. Déploiement scripté en une passe.
+**Repos GitHub** : `vps-reinstall` 🔒 (package de réinstallation), `install-vps` 🌍 (installation client anonyme), `GitHub-Auditor`, `rennesdev-vps-ops`.
 
-## 🆕 Dernière session — 2026-09-21 (4e partie)
-- **✅ Phase B « alerte → issue » (choix utilisateur)** : nouveau script **`/usr/local/bin/vps-issue.sh`** (root 700) — ouvre/clôt des issues GitHub via l'API (PAT extrait de la base n8n en variable shell, jamais affiché ; `jq` ; dédoublonnage par titre + retry ; modes `open`/`close`/`close-prefix`, défaut : repo `rennesdev-vps-ops`, label `incident`). **Issues activées** (désactivées par défaut sur rennesdev-vps-ops). Intégrations : (1) **watchdog** — chaque alerte fraîche ouvre une issue « Watchdog VPS : … », et un passage **vert** clôt automatiquement les issues watchdog ouvertes ; (2) **journal quotidien** — push échoué → issue ouverte, push réussi → clôture auto. Tests réels ✓ (2 issues de test clôturées avec commentaire). (3) **Rapport hebdo** : section « Suggestions d'issues roadmap » — repos actifs silencieux ≥ 21 jours.
-- Choix d'implémentation : script hôte direct plutôt que workflow n8n — tâche purement mécanique (règle du 18/09). Scripts versionnés dans le repo ops.
+**Scripts clés** : `vps-backup-pause.sh` (pause/reprise backup), `vps-auto-update.sh` (màj quotidiennes 04h00), `vps-tgbot.py` (bot Telegram /pause /resume /status /backup).
 
-## 🆕 Dernière session — 2026-09-21 (3e partie)
-- **✅ Phase A « dynamiser issues + code review » (choix utilisateur)** : (1) **construction-site-tracker** — ruleset 23667839 reconfiguré : « 1 review » (impossible en solo) remplacé par **check CI requis `build`** sur la branche par défaut + `deletion`/`non_fast_forward` + `allow_auto_merge` ; **workflow CI** (JDK 21 → Node 22 → cache Gradle → `npm ci` → `npx cap sync android` → `assembleDebug`) mergé via PR #5 avec le **rattrapage du commit Cible API 36** + 3 fixes révélés par la CI : package-lock régénéré (capacitor 6→8), Node 22, **minSdk 22 → 24** (plugin Camera ioncamera) ; (2) **templates mergés sur les 3 vitrines** (Nav.rennesdev #1, Lecteur-PDF #1, construction-site-tracker #6).
-- ⚠️ **Impact produit** : minSdk 24 s'appliquera au **prochain build release**. Pièges notés : ruleset `~ALL` bloque **tous** les push de branches → toujours `~DEFAULT_BRANCH` ; Capacitor 8 exige Node ≥ 22 ; `npm ci` échoue si lock désynchronisé.
-- Clone local `lecteur-pdf` sur `master` (origin = main) → renommé `main`.
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
 
-## 🆕 Dernière session — 2026-09-21 (2e partie)
-- **✅ Alerte « Journal VPS : push échoué » (depuis le 18/09) résolue** — cause : le service (root) voit le clone `~/projects/vps-journal` appartenant à ubuntu → **git refuse (« dubious ownership »)** → échec silencieux. **Correctifs** : (1) `safe.directory '*'` pour root ; (2) script réorienté vers le **clone canonique `~/projects/VPS-Rennesdev.fr`** (ancien clone `vps-journal` supprimé) ; (3) test réel : **journaux 18→21/09 poussés** (`ec138fe`) + Telegram de succès ; (4) script versionné dans le repo ops.
-- Leçon : après une restructuration de répertoires, toujours vérifier les chemins des scripts systemd.
+## ⚙️ État Actuel
+> Dernière session : 23/10/2026 — Tous les ordres Telegram traités ✅
 
-## 🆕 Dernière session — 2026-09-21
-- **🔧 Incident détecté et résolu : containerd + dockerd brûlaient ~80 % de CPU (2 cœurs) en continu depuis le 10/09** — load 5,8-6,1 sans processus visible. Diagnostic : arrêt temporaire de Netdata → CPU des démons Docker tombe à 0,2 % → coupable = collecteur go.d **docker** de Netdata, API Docker interrogée **toutes les secondes** (`/images/json` devenu coûteux sur le snapshotter containerd, store 16 Go). Fix : `go.d/docker.conf` dans le volume netdata (`update_every: 30`) + healthcheck filebrowser 5 s → 60 s (~17 000 spawns runc/jour). **Résultat : load 5,9 → 1,4, containerd/dockerd à 0,1 % CPU.** Doc : `docs/netdata.md`. ⚠️ Re-vérifier après MAJ de l'image Netdata.
-- Contrôle santé initial : tout vert (RAM 25 %, disque 61 %, Kopia OK, 6 timers actifs, ORDRES.md absent).
+**Mis à jour :**
+- ✅ n8n 2.43.6 → 2.44.6
+- ✅ Màj automatiques : timer 04h00 Paris + Docker recréé si nouvelle image
+- ✅ Pause backup : script + commandes Telegram (/pause, /resume)
+- ✅ 4 README refondus (Fiscale-vps, rennesdev, aac-audit-journal, VPS-Rennesdev.fr)
+- ✅ Skill positionnement-readme enrichi
+- ✅ Repos créés : vps-reinstall (privé) + install-vps (public)
+- ✅ Disque : 95% → 79% (19 Go libérés)
+- ✅ **Open WebUI** déployé (port 8088, accès Tailscale uniquement, lié à Ollama)
+- ✅ **Twenty CRM** déployé (port 8090, accès Tailscale uniquement, PG 16 + Redis)
+- ✅ Ménage : netdata, uptime_kuma, umami, nav_rennesdev, spectre retirés (→ +7 Go, disque 83%)
 
-## 🆕 Dernière session — 2026-09-20 (3e partie)
-- **✅ Publicité GitHub maximisée (ordre utilisateur — visibilité pour recruteurs)** : grep secrets préalable sur chaque repo (aucun secret réel trouvé — fingerprints Kopia et `whsec_MASQUE` inoffensifs) puis passage en **public** via API : `Nav.rennesdev`, `Lecteur-PDF`, `Besoin-visio`, `RuaudelPhoto`. Restent privés : `git-ops-journal`, `VPS-Rennesdev.fr` (journals d'exploitation, détails infra) — choix défendu, à valider par l'utilisateur.
-- **⚠️ Découverte : `Lecteur-PDF` était archivé sur GitHub** (impossible d'y pousser les futures releases du test fermé Play) → désarchivé en même temps que la mise en public. 12 repos actifs publics désormais (vs 5 avant).
-- `rennesdev-vps-ops` est public : vérifié sans secrets (IP serveur, IP Tailscale, timers visibles — pas exploitable de l'extérieur : UFW 22/80/443, SSH par clé, Cloudflare proxy, Tailscale = réseau privé).
+## 🐳 Services Docker
+> **9 conteneurs** (netdata, uptime_kuma, umami, nav_rennesdev, spectre retirés)
 
-- **✅ Suite (ordre utilisateur)** : `git-ops-journal` et `VPS-Rennesdev.fr` passés en **public** après grep élargi (tokens, chat ID, IP Tailscale, mots de passe — rien trouvé ; contenu des journaux anonymisé par conception : ni domaine ni IP publique). README des deux corrigés (« Repo privé » → « Repo public »), poussés via webhook. **14 repos actifs publics au total**, restent 0 actif en privé. Clonage de `VPS-Rennesdev.fr` dans `~/projects/` (convention projets).
-
-## 🆕 Dernière session — 2026-09-20 (2e partie)
-- **✅ Skill `vps-sante` mis à jour** (il datait d'avant les derniers services) : script `vps-sante.sh` couvre désormais **10 conteneurs** (+ filebrowser, nav_rennesdev, uptime_kuma, browserless), **3 vhosts récents** (nav/uptime → 401 attendu sans auth = basic auth OK ; fichiers → 200 = page login), **5 certificats** et **6 timers** (+ github-weekly, vps-daily-journal). Contrôle relancé : **TOUT VERT** (RAM 26 %, disque 60 %, snapshot Kopia 17:34 du jour, cert LE up 17h34 OK). Copie repo `rennesdev-vps-ops` mise à jour et poussée via webhook (PAT jamais en session).
-- RAS sinon : ORDRES.md absent, pas d'anomalie, 4 paquets APT en phasing (normal).
-- **Clôture de session (18h52 UTC)** : sauvegarde Kopia à la demande exécutée — 4 snapshots (staging + dumps PG umami/n8n, volumes Docker, /home/ubuntu, /etc/caddy) vers le PC `super-pc-vert`. Tous les changements du jour inclus (ETAT-VPS.md, scripts, repos publics).
-
-## 🆕 Dernière session — 2026-09-20
-- **✅ n8n mis à jour 2.39.6 → 2.39.8** (dump préalable `~/n8n-db-avant-MAJ-2026-09-20.sql.gz`, conteneur recréé) : `/healthz` 200, 10 workflows actifs, webhooks OK.
-- **✅ Uptime-Kuma en production** : conteneur `uptime_kuma` (127.0.0.1:3001, mem_limit 512 m, volume `kuma_data`, réseau `apps`), vhost **https://uptime.rennesdev.fr** (basic auth + login Kuma), **8 moniteurs** (n8n, Umami, Nav, Fichiers, Netdata, Browserless, Ollama, port PG n8n_db — 60 s, maxretries 2), **notification Telegram liée aux 8**, 130+ heartbeats enregistrés. Skill `uptime-kuma` créé (argument commercial « Résilience/Garantie »). Record DNS créé par l'utilisateur (proxy orange).
-- **✅ Browserless (Chromium headless) déployé** : conteneur `browserless` (127.0.0.1:3100 → 3000, mem_limit 1500 m, shm 512 m), token API dans `~/.env` (`BROWSERLESS_TOKEN`). Usage depuis n8n : `http://browserless:3000?token=…`. Tests réels : screenshot PNG 200, mauvais token → 401.
-- **🔧 Fin de chantier interrompu (continué par l'assistant)** : cert LE d'uptime non émis (retries ACME planifiés avant la création du DNS — même piège que Nav le 19/09) → **restart Caddy, cert obtenu 15:41 UTC, HTTPS 200**. Fichier `/etc/caddy/uptime-auth.txt` incomplet (commentaires sans ligne identifiants) → **mot de passe régénéré** et écrit (root 600) ; mot de passe Kuma (bcrypt en base) réaligné sur le même, vérifié par comparaison bcrypt.
-- **⚠️ Incident Caddy (rattrapé dans la foulée)** : deux appels `caddy hash-password` défaillants (refus stdin dans cet environnement ; `-p` prend le mot de passe littéral, pas un fichier) puis des `sed` trop larges ont vidé/écrasé les hash `basic_auth` du Caddyfile — le reload en échec a maintenu la config valide en RAM ; restauration faite depuis les plaintexts root-only (`nav-auth.txt`, `netdata-auth.txt`, uptime regénéré), hash produits avec bcryptjs du conteneur Kuma (`$2a$10$`, accepté par Caddy). Piège supplémentaire détecté et corrigé : extraction du mot de passe nav par `cut -d:` sur les deux lignes du fichier → chaîne parasite (le moniteur Kuma « Nav » a signalé DOWN 15h46-15h55, retour UP après remise du vrai hash). Vérifié : uptime 302→dashboard, nav 200, netdata 200, **401 sans auth sur les 3**, 8/8 moniteurs UP. Leçons : écrire les hash via Python/heredoc, jamais un sed sur motif partiel ; extraire un mot de passe en ciblant la ligne exacte (`sed -n 's/^password: //p'`).
-- Divers : skills réorganisés (`.md` + `SKILL.md`, notamment `post-mortem`, `roi-mesure-gain`, `sequence-conversation`, `profil-utilisateur`, `integration-data`, `methodologie-conseil-ia`) ; contrôle santé du 20/09 vert (disque 60 %, RAM 2,0/7,6 Go, Kopia dépôt connecté).
-
-## 🆕 Dernière session — 2026-09-19 (5e partie)
-- **✅ Nav.rennesdev v2 : assistant IA intégré (ordre utilisateur, test v1 validé)** — développée sur branche dédiée `v2-assistant-ia` (règle 11), commits commentés. Bouton **🤖 IA** dans la barre du lecteur → panneau (Résumer / question libre) → **qwen2.5:3b en local** via `POST /ia` (Ollama, réseau `apps`). Le serveur réutilise la page déjà extraite pour l'affichage via un **cache mémoire** (TTL 15 min, 30 pages max) : l'IA voit le contenu directement, zéro copier-coller. `keep_alive: 0` → RAM déchargée après chaque réponse (vérifié : 1,7 Go au repos). Tests réels : résumé ~72 s, question ~59 s, HTTPS+basic auth OK, erreurs JSON propres.
-- **✅ Tests concluants (utilisateur) → branche `v2-assistant-ia` fusionnée dans `main`** (merge, README ajusté, poussé) ; branche supprimée localement et sur GitHub après fusion. Repo `Nav.rennesdev` : `main` = v1+v2.
-- Leçon outillage : le pipeline d'édition de l'assistant décode les entités HTML → toute écriture de code contenant des entités doit passer par un heredoc Python (les échappements `\u0026` dans les chaînes JS restent fiables). Bugs v2 corrigés en route : endpoint `/ia` oublié (script mort à la compilation), `</script>` d'historique manquant, panneau inséré au mauvais endroit.
-
-## 🆕 Dernière session — 2026-09-19 (4e partie)
-- **✅ Nav.rennesdev v1 en production** : record DNS créé (proxy orange), **cert Let's Encrypt émis** (après restart Caddy pour forcer le retry — les retries auto étaient planifiés trop loin) — HTTPS 200 via Cloudflare, basic auth OK (401 sans), navigation wiki testée via https://nav.rennesdev.fr. Conteneur recréé depuis le nouveau chemin `~/projects/Nav.rennesdev` (ancien `~/nav` déplacé — convention projets).
-- **✅ Règle GitHub (ordre Telegram 10h56, rétroactive)** : 1 projet = 1 repo → **Nav.rennesdev sorti de rennesdev-vps-ops** et poussé dans son **propre repo privé `Nav.rennesdev`** (créé via webhook, création auto) ; `nav/` retiré du repo ops. Améliorations d'un projet = **nouvelle branche** dédiée, commits commentés. Règle enregistrée dans les préférences + skill `github-ops`.
-
-## 🆕 Dernière session — 2026-09-19 (2e partie)
-- **✅ ÉCLAIREUR testé en réel par l'utilisateur** : page inexistante → erreur 404 propre en 1,2 s ; page réelle + question ciblée (wiki IA) → réponse pertinente de qwen2.5:3b en **49 s**. Chaîne complète validée de bout en bout, aucune modification du workflow.
-- **Play Console : compte confirmé « Particulier »** (profil de paiement validé le 01/07/2026) → **pas de dérogation possible** : la règle des comptes personnels récents s'applique — **test fermé avec ≥ 20 testeurs optés en continu pendant 14 jours** avant l'accès à la production (les tests internes et les 11 testeurs actuels ne comptent pas). Plan donné à l'utilisateur : (1) créer la piste « Test fermé » pour chaque app avec l'AAB déjà validé, (2) recruter 9-10 testeurs de plus (≥ 20 au total, lien d'opt-in + installation réelle + engagement pendant 14 j), (3) les mêmes testeurs sur les 2 apps → les 14 jours tournent en parallèle, (4) à J+14 le formulaire « Demander l'accès à la production » se débloque. Itérations AAB possibles pendant l'attente sans casser la piste.
-
-## 🆕 Dernière session — 2026-09-19
-- **✅ ÉCLAIREUR déployé (ordre utilisateur « lance eclaireur »)** : l'idée en réserve est passée en production — workflow n8n « ÉCLAIREUR — lecture de page web (Ollama) », webhook **POST https://n8n.rennesdev.fr/webhook/eclaireur** protégé par header `X-Eclaireur-Key` (clé générée, `/etc/eclaireur-key.txt` root 600). Chaîne : HTTP GET → extraction texte (strip HTML, entités FR, **2500 car. max**) → Ollama **qwen2.5:3b** (résumé 5 phrases max ou Q&A sur `question`) → réponse JSON. Tests réels OK : résumé wiki ~83 s, question ciblée ~52 s, erreurs (clé 401, URL invalide, page 404) < 2 s, **modèle déchargé après usage** (`keep_alive: 0`, RAM au repos inchangée). README + workflow.json exportés (clé en placeholder, grep vérifié) → poussés sur `rennesdev-vps-ops/workflows/eclaireur/`. Skill `n8n-ops` enrichi des nouveaux pièges.
-- **Pièges découverts (détail dans skill n8n-ops + README ÉCLAIREUR)** : nœud Webhook **sans `webhookId`** → webhook production non enregistré (404 « not registered ») ; workflow créé en SQL sans ligne `shared_workflow` → activation en boucle `EntityNotFoundError` ; HTTP Request `responseFormat: text` renvoie le HTML dans `data` sans `statusCode` (→ `fullResponse: true`) ; **Cloudflare coupe à 100 s** (524) → le 7b (~12 tokens/s en CPU) était trop lent, bascule sur le 3b (~28 tokens/s) et réduction du texte extrait.
-- ⚠️ **PAT GitHub affiché de nouveau en session 19/09** (lecture du nœud « Config » de « Push GitHub » pour calquer la structure d'un webhook — sortie non filtrée, 3e occurrence). Aucun push sur disque du token ; **rotation à la prochaine occasion** (l'utilisateur génère le token, le colle dans « Push GitHub », l'assistant le propage SQL aux autres nœuds).
-- Divers : correction de la table Services (`OLLAMA_KEEP_ALIVE=10m` n'était pas répercuté) ; contrôle santé du 19/09 tout vert (7 conteneurs, RAM 20 %, disque 52 %, Kopia OK, pas d'ORDRES.md).
-
-## 🆕 Dernière session — 2026-09-18 (5e partie)
-- **PR #4 + PR #1 fusionnées sur `construction-site-tracker`** (par l'utilisateur, après désactivation ponctuelle du ruleset) : `main` contient désormais le projet Android Capacitor (signé, keystore hors repo) + la maj auto des dépendances. ⚠️ pendant la manip, le ruleset avait perdu ses règles « 1 review requise » et « suppression » → **restaurées le jour même via l'API** (ancien ruleset supprimé + recréé avec les 3 règles : non_fast_forward, deletion, pull_request 1 review — id 23667839 ; le PATCH sur l'ancien ruleset renvoyait 404 malgré Administration write → contournement delete+recrée).
-- **PAT GitHub roté (terminé côté VPS)** : nouveau token fine-grained généré par l'utilisateur → collé dans n8n « Push GitHub » → propagation SQL (jamais affiché) vers « GitHub — descriptions auto » (3 occurrences) et « Agent Telegram » (1 occ.) ; `n8n_workflow` redémarré pour purger le cache RAM ; test réel OK (push webhook « git-ops-journal », note `docs/rotation-pat-2026-09-18.md`). ✅ **Ancien token révoqué par l'utilisateur le jour même — rotation close.**
-- ✅ Keystores des 2 apps sauvegardés hors VPS par l'utilisateur.
-- **Lecteur-PDF v1.0.1 créée (versionCode 2)** : bump de version uniquement (aucun changement fonctionnel), build signé avec le keystore dédié (apksigner + jarsigner vérifiés), commit poussé + **release GitHub v1.0.1** avec AAB+APK — destinée à la piste **Tests fermés** de la Play Console (la v1.0.0 reste sur les tests internes).
-- Piège SQL noté : `->>` a la même priorité que `||` en PG 17 → toujours parenthéser `(n->>'name')` dans une concaténation.
-## 🆕 Dernière session — 2026-09-18 (4e partie)
-- **Contrôle santé vert + point DNS réglé** : `fichiers.rennesdev.fr` **résout désormais** (proxy orange Cloudflare, HTTPS 200) — le record A a été créé côté Cloudflare. Cert Let's Encrypt **émis le 18/09 11:35 UTC** (expire 17/12, renouvellement auto). File Browser opérationnel via le navigateur.
-- **Analyse disque (39 → 37 Go après nettoyage)** : la hausse venait du store images **containerd** (16 Go, Docker l'utilise désormais) + volumes 8,9 Go (modèles ollama ~6,5 Go, bases PG) — rien d'anormal. Nettoyages faits : image n8n dangling supprimée (245 Mo), `apt clean`. Reste 51 % utilisé, RAS.
-- **APT : 4 paquets netplan en attente = phasing Ubuntu** (diffusion progressive, pas une panne) — rien à forcer, ils viendront avec les mises à jour normales.
-
-## 🆕 Dernière session — 2026-09-18
-- **Rapport RAM complet (ordres Telegram)** : le « 80 % » vu ce matin = pic **prévisible** — qwen2.5:7b (4,7 Go en RAM) chargé 2× (Agent Telegram 07h00 + descriptions auto 07h45 Paris), rapport 08h00 passé pendant le keep_alive 30 min. Au repos : 1,5/7,6 GiB (~20 %), swap 785 Mo = résidu passif, RAS. Repartition : n8n 424 Mo, Netdata 326 Mo, ollama 108 Mo (déchargé), umami ~150 Mo, système ~300 Mo.
-- **Analyse critique ollama** : pour (coût 0, données locales) / contre (7b = ~60 % RAM seul, inférence CPU lente, risque OOM si pic croisé). Sécurité Docker OK (127.0.0.1 uniquement, conteneur isolé). **3 options proposées, aucune appliquée** (en attente utilisateur) : (a) garder tel quel, (b) basculer l'usage quotidien sur qwen2.5:3b (pic ~45 %), (c) réduire keep_alive 30 → 10 min.
-## 🆕 Dernière session — 2026-09-18 (3e partie)
-- **Interface web d'accès aux fichiers créée (ordre utilisateur)** : conteneur **File Browser** (`filebrowser/filebrowser:v2`, `~/filebrowser/docker-compose.yml`, port 127.0.0.1:8085, scope `/home/ubuntu` lecture+écriture — téléchargement ET upload via le navigateur, pas de FTP exposé). Utilisateur `emmanuel` créé (mot de passe fort généré, credentials `/etc/caddy/filebrowser-auth.txt` root 600, login JWT testé en réel). Vhost Caddy **fichiers.rennesdev.fr** ajouté (import secure_headers → reverse_proxy 127.0.0.1:8085), config validée + reload OK. ⚠️ Reste utilisateur : **créer le record DNS A `fichiers.rennesdev.fr`** chez Cloudflare — proxy orange = IP masquée mais upload limité à 100 Mo (plan Cloudflare gratuit) ; nuage gris (DNS only) = gros fichiers sans limite mais IP visible. Cert Let's Encrypt émis automatiquement par Caddy dès que le DNS pointe.
-## 🆕 Dernière session — 2026-09-18 (2e partie)
-- **Nouvelle app « Lecteur PDF » créée pour Play Store (ordre utilisateur)** : copie de travail `~/projects/lecteur-pdf` — WebView Capacitor **8.5.2** + **PDF.js 4 embarqué** (`www/pdfjs/`, aucun CDN → 100 % hors ligne), zoom 7 niveaux, mode sombre mémorisé, **aucune permission Android** (ni réseau ni stockage — le file chooser du WebView suffit), package `fr.rennesdev.lecteurpdf`, versionCode 1 / 1.0.0. **Pièges** : Capacitor 8 exige Java 21 → `openjdk-21-jdk-headless` installé + `org.gradle.java.home` dans `gradle.properties` ; keytool sans `-keypass` = keypass = storepass (credentials corrigés en conséquence). Keystore dédié `~/keystores/lecteur-pdf-release.keystore` (RSA 4096, 30 ans) + `lecteur-pdf-credentials.txt` (600, HORS repo), `android/keystore.properties` gitigné. **Build OK** : AAB 3,4 Mo + APK 3,5 Mo signés (apksigner vérifié), AGP 8.13 / Gradle 8.14.3 (plus récents que suivi-interventions). Repo privé **`Lecteur-PDF`** créé via webhook « Push GitHub » (création auto si absent) + commit main poussé. **Release GitHub v1.0.0** créée avec AAB+APK. Guides `README.md` + `PLAY-STORE.md` (package à saisir exactement `fr.rennesdev.lecteurpdf` à la création de l'app). Reste utilisateur : Play Console (créer l'app, upload AAB en tests internes, fiche store, captures), et sauvegarder le keystore hors VPS.
-- ⚠️ **PAT GitHub affiché par erreur dans la session 18/09** (extraction DB mal maîtrisée lors du rapport RAM — sortie de requête non filtrée). Aucun push sur disque, mais rotation recommandée à la prochaine occasion (l'utilisateur colle le nouveau dans « Push GitHub », l'assistant le propage aux autres nœuds).
-- **Restructuration du journal (ordre utilisateur 18/09)** : ETAT-VPS.md jugé trop long → les sessions 14-17/09 déplacées dans l'archive, et le savoir par sujet isolé dans **4 skills** chargés seulement quand le sujet sort : `github-ops` (PAT, push webhook, workflows GitHub, radar cadence), `n8n-ops` (base, pièges workflow_history/connections, cron, Airtable), `stripe-ops` (webhook paiement + signature `whsec_`), `tally-ops` (webhooks formulaires + signature `tly-`). ETAT-VPS.md garde : infra, services, timers, backups, préférences, en attente.
-- **Règle notée (ordre 10h14)** : se demander à chaque workflow si un agent LLM est nécessaire — mécanique = pas d'agent (deps/push/backups corrects), compréhension de texte = agent (Agent Telegram correct).
-- **✅ Choix utilisateur (18/09)** : `OLLAMA_KEEP_ALIVE` réduit 30 → 10 min (`~/ollama/docker-compose.yml`, conteneur recréé, env vérifiée, API 200) — le modèle se décharge plus vite après les crons du matin. Le reste (modèle 7b, timers) gardé tel quel.
-## Infrastructure
-- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7.6 Go RAM, 72 Go disque (~37 Go utilisés, 51 % — dont containerd 16 Go images + volumes docker 8,9 Go)
-- IPv4 : 162.19.246.165 — IPv6 : 2001:41d0:701:1100::208c — hostname Tailscale : `vps-5532a57a` (100.75.226.13)
-- DNS chez **Cloudflare** (proxy orange, Full strict, Always Use HTTPS)
-
-## Services & stacks
-| Élément | Détail |
-|---|---|
-| Frontal | **Caddy** (80/443, certs ACME auto, expirent 2026-12-10, renouvellement auto) — `/etc/caddy/Caddyfile` |
-| Umami | `umami_app` (127.0.0.1:3000) + `umami_db` (PG 16) — stack `~/umami/`, creds `~/umami/.credentials.txt` |
-| n8n | **v2.39.8** (maj 20/09) — `n8n_workflow` (127.0.0.1:5678) + `n8n_db` (**PostgreSQL 17**) — `~/docker-compose.yml`, mdp dans `~/.env` (`N8N_DB_PASSWORD`) |
-| Ollama | `ollama` (127.0.0.1:11434), réseau Docker `apps` — modèles : `qwen2.5:7b` (bot IA), `llama3.2:3b`, `qwen2.5:3b`. `OLLAMA_KEEP_ALIVE=10m` (réduit de 30 min le 18/09, choix utilisateur) |
-| Netdata | `netdata`, UI **127.0.0.1:19999** + **https://netdata.rennesdev.fr** (basic auth, credentials `/etc/caddy/netdata-auth.txt` root 600) — `~/netdata/docker-compose.yml` |
-| File Browser | `filebrowser`, UI **127.0.0.1:8085** + **https://fichiers.rennesdev.fr** (auth JWT intégrée, credentials `/etc/caddy/filebrowser-auth.txt` root 600, scope `/home/ubuntu`) — `~/filebrowser/docker-compose.yml` |
-| Nav.rennesdev | `nav_rennesdev` (`node:22-alpine`, zéro dep) — **https://nav.rennesdev.fr** (basic auth, credentials `/etc/caddy/nav-auth.txt` root 600) → 127.0.0.1:8086 — `~/projects/Nav.rennesdev/docker-compose.yml` (repo GitHub `Nav.rennesdev`) — navigateur léger mode lecture, v2 = assistant IA |
-| Uptime-Kuma | `uptime_kuma` (`louislam/uptime-kuma:1`, mem_limit 512 m) — **https://uptime.rennesdev.fr** (basic auth + login Kuma, credentials `/etc/caddy/uptime-auth.txt` root 600) → 127.0.0.1:3001 — 8 moniteurs + notification Telegram — volume `kuma_data` |
-| Browserless | `browserless` (`ghcr.io/browserless/chromium`, mem_limit 1500 m, shm 512 m) — Chromium headless piloté par API (scraping JS, PDF, screenshots) — 127.0.0.1:3100 ; usage n8n : `http://browserless:3000?token=` (`BROWSERLESS_TOKEN` dans `~/.env` + `~/projects/SPECTRE/.env`) |
-| SPECTRE | `spectre` (image node:22-alpine+poppler, zéro dep) — **https://spectre.rennesdev.fr** (basic auth, credentials `/etc/caddy/spectre-auth.txt` root 600) → 127.0.0.1:8087 — `~/projects/SPECTRE/` (repo public `SPECTRE`) — analyse de contenu IA : URL rendue Browserless, texte collé, PDF/MD ; IA OpenRouter (si clé) sinon Ollama qwen2.5:3b |
-| Bot contrôle | `vps-tgbot.service` → `/usr/local/bin/vps-tgbot.py` (long polling) : `/backup`, `/status`, `/ordres`, `/ok`, `/help` |
-| Bot IA | Workflow n8n « Agent Telegram » (bot dédié) : Telegram → Filter chat.id → Ollama qwen2.5:7b + PG Chat Memory → réponse |
-| Sécurité | UFW (22/80/443), fail2ban (sshd + recidive), SSH par clé uniquement, `passwordauthentication=no` |
-
-## Timers systemd
-| Timer | Horaires (Europe/Paris) | Rôle |
+| Conteneur | Image | Statut |
 |---|---|---|
-| `vps-watchdog` | toutes les 15 min | anomalies → Telegram (`/usr/local/bin/vps-watchdog.sh`) |
-| `vps-metrics-report` | **lundi 08:00** | rapport métriques → Telegram (`/usr/local/bin/vps-metrics-report.sh`) — **réactivé le 25/09 sur demande (lundi uniquement)** |
-| `vps-ollama-unload` | tous les jours 19:15 | décharge les modèles ollama avant backup |
-| `vps-backup` | dimanche 19:30 | backup Kopia complet (PC allumé requis) |
-| `vps-backup-reminder` | dimanche 12:00 | rappel Telegram (PC joignable ? dépôt ? âge snapshot) |
-| `github-weekly` | vendredi 19:00 | rapport hebdo GitHub → repo `git-ops-journal` + Telegram |
-| `vps-daily-journal` | tous les jours 23:00 | journal quotidien du VPS → repo `VPS-Rennesdev.fr` (**message Telegram coupé le 25/09**) |
+| n8n_workflow | n8nio/n8n:2.44.6 | ✅ |
+| n8n_db | postgres:17-alpine | ✅ |
+| ollama | ollama/ollama:latest | ✅ |
+| browserless | ghcr.io/browserless/chromium:latest | ✅ |
+| filebrowser | filebrowser/filebrowser:v2 | ✅ |
+| open_webui | ghcr.io/open-webui/open-webui:main | ✅ |
+| twenty_server | twentycrm/twenty:latest | ✅ |
+| twenty_db | postgres:16 | ✅ |
+| twenty_redis | redis:7-alpine | ✅ |
+| twenty_worker | twentycrm/twenty:latest | ✅ |
 
-## Backups (Kopia)
-- Chaîne : `vps-backup.timer` → `kopia-backup.sh` (staging = dump umami + pg_dump n8n + configs, puis snapshots : `/var/lib/docker/volumes`, `/home/ubuntu`, `/etc/caddy`) → **dépôt Kopia sur le PC Windows** (`super-pc-vert`, 100.118.76.30, port 51515, TLS cert RSA fixe, fingerprint `46d81925…`).
-- À la demande : `/backup` Telegram → `vps-backup-on-demand.sh` (démarre le serveur Kopia du PC via SSH si besoin, clé `/root/.ssh/id_ed25519_pc`).
-- Restauration : `kopia restore` (testée sur dumps). Certificat PC valable jusqu'en 2036.
+## 🔴 Logs & Erreurs
+> Aucune anomalie en cours.
 
-## Tailscale
-- VPS `vps-5532a57a` = 100.75.226.13 ↔ PC `super-pc-vert` = 100.118.76.30 (connexion directe, ~20 ms).
-
-## 🧠 PRÉFÉRENCES UTILISATEUR (mémoire permanente)
-9. **Pas d'alerte Telegram pour les situations normales** : PC éteint = pas d'alerte Kopia. Une alerte = quelque chose à faire. Un **seul** rappel de backup (dimanche 12:00, avant le backup 19:30). Journal du soir : push GitHub uniquement, plus de message Telegram (25/09).
-11. **Règle GitHub (ordre 19/09)** : tout nouveau projet = **son propre repo** (jamais un sous-dossier d'un repo existant) **et naît avec son README** (ordre 19/09) ; toute amélioration d'un projet = **nouvelle branche** dédiée dans le repo du projet ; toutes les améliorations = **commits commentés**.
-1. **Canal d'alerte = Telegram** : bot `@Vosmanubot` (Bot-vps), chat `TG_CHAT_ID=8634051625`, config `/etc/vps-watchdog-telegram.env` (root 600). JAMAIS de token dans un fichier commité ou ce journal.
-2. **Chaque nouveau workflow/création → repo GitHub avec README** : `github.com/Ruaudel-Emmanuel/rennesdev-vps-ops` (privé, local : `~/projects/rennesdev-vps-ops`). **Push sans PAT en session** : webhook n8n `POST https://n8n.rennesdev.fr/webhook/github-push` — PAT extrait de la base n8n (`n8n_db`, table `workflow_entity`, workflow « Push GitHub ») directement en variable shell du curl, jamais affiché ni sur disque. Voir `docs/push-github.md`.
-3. Heures des timers : **Europe/Paris** (le serveur est en UTC).
-4. L'utilisateur est sur **Windows 11** (`super-pc-vert`) — manipulations PC = pas-à-pas clairs.
-5. **Aucun secret côté assistant** ; secrets → fichiers root-only sur le VPS.
-6. **Au début de CHAQUE session : lire `/home/ubuntu/ORDRES.md`** (ordres via bot `@Vosmanubot`, message libre = ordre), les traiter, marquer ✅. `/ordres` liste, `/ok` vide.
-7. **Maintenance du journal** : `ETAT-VPS.md` = état courant + dernière session ; le 1er de chaque mois → déplacer les entrées datées du mois écoulé dans `ETAT-VPS-archive-<AAAA-MM>.md` puis pusher les deux sur GitHub. Skill `vps-sante` (`~/.agents/skills/vps-sante/`) = procédure standard de contrôle de santé. **Par sujet → skills dédiés** (chargés seulement quand le sujet sort) : `github-ops`, `n8n-ops`, `stripe-ops`, `tally-ops` (`~/.agents/skills/`).
-8. **Rapport hebdomadaire lundi 08:00 Paris** sur Telegram (`vps-metrics-report.timer`) — **réactivé le 25/09** (lundi uniquement, décision utilisateur). Vérifier qu'il est actif au contrôle santé.
-10. **Airtable forfait gratuit = 1 000 appels API/mois** (partagés entre les workflows) : tout workflow Airtable doit être économe — appels groupés (formule OR, batch records), cache staticData des listes, fréquence limitée, pause auto sur 429. Se référer au design des workflows « Diffusion » (16/09).
-
-12. **Vision GitHub (ordre 21/09)** : le GitHub doit être **dynamique sans excès** et se gérer **le plus autonome possible** — l'objectif est qu'il soit attractif pour un recruteur sans travail phénoménal de l'utilisateur. Règle de décision pour toute automatisation GitHub : est-ce que ça ajoute de l'activité réelle et régulière sans créer de bruit ni de charge manuelle ? Privilégier l'auto-merge, les auto-issues, les rapports ; éviter le bot-spam cosmétique.
-
-13. **Principe d'automatisation (ordre 21/09)** : se demander systématiquement « **Peut-on l'automatiser ?** » — si oui, automatiser, en priorité pour GitHub et les outils où c'est possible. S'applique à chaque nouveau besoin, incident récurrent ou tâche répétitive repérée pendant les sessions.
-
-## ⏳ En attente (actions utilisateur)
-> ℹ️ Pourquoi « hors VPS » : ce n'est pas que le PC est plus sûr — c'est de la redondance (le VPS = point de défaillance unique ; sans keystore, l'app est figée à jamais sur le Play Store). La copie existe déjà via le snapshot Kopia hebdo de `/home/ubuntu` vers le PC — l'enjeu est de vérifier qu'un restore fonctionne.
-- ✅ 2026-09-24 : **bug du bouton bleu corrigé (release v1.0.2) et téléversée par l'utilisateur dans la piste Test fermé** de la Play Console — les testeurs reçoivent la mise à jour, le comptage des 14 jours continue. Note : le test fermé est lancé avec ~20 testeurs (ordre 23/09), premiers retours reçus et traités.
-- **lecteur-pdf : Play Console** — créer l'app « Lecteur PDF » (⚠️ package = `fr.rennesdev.lecteurpdf`), upload AAB v1.0.0 en Tests internes, fiche store + captures, déclaration « aucune donnée ». Guide : `PLAY-STORE.md` du repo `Lecteur-PDF`.
-- ✅ 2026-09-20 : record DNS A `uptime.rennesdev.fr` créé (proxy orange) — cert LE émis, HTTPS 200, 8 moniteurs + notification Telegram actifs.
-- ✅ 2026-09-19 : record DNS A `nav.rennesdev.fr` créé (proxy orange) — cert LE émis, HTTPS 200, navigation testée. **Nav.rennesdev v1 terminée.**
-- ✅ 2026-09-18 : record DNS A `fichiers.rennesdev.fr` créé (proxy orange, cert LE émis, HTTPS 200).
-- ✅ 2026-09-18 : **2 keystores sauvegardés hors VPS** (l'utilisateur).
-- ✅ 2026-09-18 : **PAT GitHub roté et déployé partout, ancien token révoqué** — rotation close.
-- **✅ 2026-09-22 : SPECTRE en production** — record DNS A créé (proxy orange), restart Caddy, **cert LE émis, HTTPS 401/200, analyse testée via l'URL publique**. **OpenRouter branché le jour même** : clé fournie par l'utilisateur dans `/etc/openrouter-key.txt` (root 600, montée read-only dans le conteneur), modèle **`inclusionai/ling-3.0-flash-vl:free`** (défaut) — **analyse 1,6 s (texte collé) et 5,5 s (URL Wikipedia) vs 11-76 s en Ollama CPU** ; fallback Ollama auto en cas d'échec API. ⚠️ La plupart des modèles gratuits sont bloqués par la data policy du compte OpenRouter (« 0 endpoints matching guardrail ») — pour débloquer gemma/qwen : activer les endpoints d'entraînement dans les réglages Privacy du compte.
-- **Play Console (bloqué sur le test fermé, 2026-09-19)** : 2 apps créées (brouillon + tests internes), questionnaires (classification du contenu, cible et contenu) et fiches Play Store **remplis**, icônes et illustrations générées via Google AI Studio, uploads AAB en tests internes, **11 testeurs**. ⚠️ **Compte « Particulier » confirmé (profil validé 01/07/2026) → test fermé obligatoire : ≥ 20 testeurs optés en continu pendant 14 jours** avant production. Reste utilisateur : créer la piste « Test fermé » par app (AAB déjà validé), recruter 9-10 testeurs de plus (≥ 20, opt-in + installation réelle), tenir 14 jours (les 2 apps en parallèle avec les mêmes testeurs), puis « Demander l'accès à la production ».
-- ✅ 2026-09-18 : **PR #2 (recréée en #4) fusionnée** — projet Android Capacitor sur `main` de `construction-site-tracker` (avec la PR deps #1).
-- **construction-site-tracker : Play Console** — créer l'app, upload de l'AAB (release v1.0.0) en Tests internes, laisser « Google gère la clé de signature de l'app » (Play App Signing), complétérer fiche store + déclaration données. Guide pas-à-pas : `PLAY-STORE.md` dans le repo.
-- ✅ 2026-09-18 : **keystore suivi-interventions sauvegardé hors VPS** (couvert par la ligne keystores ci-dessus).
-- ✅ 2026-09-17 : points GitHub précédents tous traités (ancien token révoqué, issue fermée, PR relues, Tally photographe OK, PAT roté, dépôts confirmés) — validé par l'utilisateur.
-
-## 🔎 Vérifications rapides utiles
-```bash
-bash ~/.agents/skills/vps-sante/scripts/vps-sante.sh   # contrôle complet (exit 0 = vert)
-docker ps                                              # 10 conteneurs attendus (dont filebrowser, nav, uptime_kuma, browserless)
-curl -s -o /dev/null -w '%{http_code}' https://n8n.rennesdev.fr   # 200
-sudo fail2ban-client status sshd
-docker exec ollama ollama list
-curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19999     # 200 (netdata)
-systemctl list-timers github-weekly.timer --no-pager             # vendredi 19h00 Paris
-systemctl list-timers vps-daily-journal.timer --no-pager         # tous les jours 23h00 Paris
-```
-
-## Notes
-- 💡 **OpenRouter (25/09)** : la limite mensuelle de dépense (10 €) a été supprimée par l'utilisateur — plus d'interruption de session assistant par épuisement de crédit. Les usages IA cloud (assistant pi, SPECTRE) peuvent être utilisés sans craindre le quota mensuel ; garder le fallback Ollama local pour le chat perso (décision ferme inchangée).
-- 💡 **SPECTRE (déployé le 22/09, choix utilisateur via ordres)** : ex-idée en réserve, lancée le 22/09 avec les 2 features demandées (texte collé + documents PDF/MD). Rendu de page par **Browserless** (déployé le 20/09 — pas de conteneur Playwright dédié). **IA : OpenRouter actif depuis le 22/09 (clé montée, ling-3.0-flash-vl:free, 1-6 s) avec fallback Ollama auto** (plafond Cloudflare 100 s). ÉCLAIREUR reste tel quel sur Ollama local. **Le chat perso (Agent Telegram, qwen2.5:7b) reste en local, décision ferme** (données de conversation personnelles ne quittent pas le VPS). Gestion clé : `/etc/openrouter-key.txt` root-only, jamais en session, fallback Ollama si API down (déjà implémenté dans server.js). Contraintes inchangées : RAM, taille de contexte, respect des sites (lecture publique seule, pas de contournement paywall/anti-bot).
-- Historique détaillé (crises résolues, installations, debugging) : `ETAT-VPS-archive-2026-09.md`.
-- Docs ops + workflows + scripts versionnés : `~/projects/rennesdev-vps-ops/` (= repo GitHub).
-- Skill de contrôle santé : `~/.agents/skills/vps-sante/` (copié dans le repo GitHub).
+- ⚠️ **Disque 79%** (57G/72G) — sous contrôle, 19 Go libérés le 23/10

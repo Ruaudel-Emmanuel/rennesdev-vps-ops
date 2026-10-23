@@ -21,6 +21,26 @@ description: Tout ce qui concerne n8n sur le VPS rennesdev.fr — architecture (
 - **Ne pas créer de credential n8n `githubApi` pour les httpRequest** : testée le 26/09, la credential retournait 401 (type OAuth/token) et n'était référencée par aucun workflow. La source est l'env `GITHUB_PAT`. (Credential GitHub account supprimée.)
 - Rotation du PAT = maj `~/.env` GITHUB_PAT + restart conteneur (+ maj Config node de « Push GitHub » pour les scripts) → plus de chirurgie SQL dans tous les nœuds.
 
+## Principe général : automatiser, pas forcément dans n8n
+> **Règle : si ça peut être automatisé, ça doit l'être. Ne pas utiliser n8n si une solution plus simple et plus pérenne existe.**
+
+n8n est excellent pour les workflows complexes avec branches, conditions, intégrations multiples (webhooks, API, IA, Telegram, cron). Mais pour une tâche simple et critique qui doit survivre à un arrêt de n8n, privilégier :
+
+| À faire dans n8n | À faire en systemd + bash |
+|---|---|
+| Orchestration multi-API (GitHub → Ollama → Telegram) | Backup Kopia (doit marcher même si n8n est down) |
+| Webhook entrant (Tally, Stripe) | Watchdog/monitoring (15 min) |
+| Cron avec conditionnel (ex. « si lundi, faire X sinon Y ») | Timer récurrent simple (lundi 05h00, dimanche 19h30) |
+| Enchaînement d'actions avec retry/fallback | Script shell qui accède à Docker, systemd, DB direct |
+
+**Exemples concrets sur le VPS :**
+- ✅ Backup → `vps-backup.timer` (systemd)
+- ✅ Watchdog → `vps-watchdog.timer` (systemd)
+- ✅ Rappel backup → `vps-backup-reminder.timer` (systemd)
+- ✅ AAC maintenance hebdo → `aac-weekly-maintenance.timer` (systemd)
+- ✅ Audit GitHub quotidien → n8n (car combine GitHub + Ollama + Telegram avec batching)
+- ✅ Alertes Tally/Stripe → n8n (car webhooks entrants)
+
 ## Modèle publication/activation n8n 2.41 (incident 27/09 — « publier » ≠ « brouillon »)
 - **« Publier » = « activer »** : `POST /workflows/:id/publish` appelle `activateWorkflow` — il n'existe pas d'état « publié mais inactif ». Brouillon volontairement inactif : **My Sub-workflow** (sous-workflow utilitaire) reste NON publié. (AI Personal Assistant était aussi brouillon ; **publié + activé le 28/09** sur Ollama local — règle 14, voir inventaire.)
 - **Invariant des workflows sains** : `workflow_entity.versionId` = `workflow_entity.activeVersionId` = une ligne `workflow_history` = une ligne `workflow_published_version` (même uuid partout). `activeVersionId` NULL = l'applier **dé-publie** le workflow (l'activation est perdue).
