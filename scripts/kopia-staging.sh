@@ -26,7 +26,6 @@ echo "[$(date '+%F %T')] Backup SQLite n8n OK ($(du -h "$STAGING/n8n-database.sq
 cp /home/ubuntu/docker-compose.yml "$STAGING/configs/" 2>/dev/null || true
 cp /home/ubuntu/.env "$STAGING/configs/dot-env" 2>/dev/null || true
 cp /home/ubuntu/umami/docker-compose.yml "$STAGING/configs/umami-docker-compose.yml" 2>/dev/null || true
-cp /home/ubuntu/ollama/docker-compose.yml "$STAGING/configs/ollama-docker-compose.yml" 2>/dev/null || true
 cp /etc/caddy/Caddyfile "$STAGING/configs/Caddyfile" 2>/dev/null || true
 chmod 600 "$STAGING"/configs/* 2>/dev/null || true
 echo "[$(date '+%F %T')] Configs copiées"

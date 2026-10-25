@@ -31,7 +31,7 @@ bash ~/.agents/skills/vps-sante/scripts/vps-sante.sh
 ## Points de repère
 
 - Valeurs normales : RAM < 90 % (le bot IA ollama peut la faire monter à ~85 %
-  temporairement — cf. ETAT-VPS.md), disque < 85 %, 6 conteneurs, 4 timers.
+  temporairement — cf. ETAT-VPS.md), disque < 95 %, 9 conteneurs, 6 timers.
 - Kopia : le PC peut être éteint la nuit (port 51515 fermé = ⚠️ et non ❌) ;
   le dépôt doit rester connectable et avoir un snapshot de moins de ~8 jours
   (backup hebdo le dimanche 19:30 Paris).

@@ -52,7 +52,7 @@ cat > "$FICHIER" << 'NEWETAT'
 
 **Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30 (rappel 12h00). Stocke volumes docker + /home/ubuntu + /etc/caddy.
 
-**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, metrics 📊 lun 08:00, ollama-unload 🧠 19:15, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, github-weekly 📈 ven 19:00, daily-journal 📝 23:00.
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, metrics 📊 lun 08:00, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, github-weekly 📈 ven 19:00, daily-journal 📝 23:00.
 
 **Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
 

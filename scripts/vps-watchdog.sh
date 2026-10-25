@@ -27,7 +27,7 @@ MEM=$(free | awk '/Mem:/{printf "%d", $3/$2*100}')
 [ "${MEM:-0}" -ge 90 ] && alert "RAM: ${MEM}% utilisée"
 
 # 3. Conteneurs Docker attendus
-for c in n8n_workflow n8n_db umami_app umami_db ollama netdata; do
+for c in n8n_workflow n8n_db twenty_server twenty_db twenty_redis browserless filebrowser; do
     state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null)
     if [ "$state" != "running" ]; then
         alert "Conteneur $c: statut=${state:-introuvable}"

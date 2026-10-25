@@ -39,13 +39,6 @@ else
     PC="PC fermé"
 fi
 
-# --- Netdata ---
-ND=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:19999)
-
-# --- Ollama ---
-OLL=$(docker exec ollama ollama ps 2>/dev/null | tail -n +2 | awk '{print $1}' | tr '\n' ', ')
-OLLAMA_LINE="${OLL:-aucun modèle chargé}"
-
 # --- Construction du message (compact) ---
 MSG="📊 VPS rennesdev.fr — ${NOW} (Paris)
 
@@ -55,9 +48,7 @@ MSG="📊 VPS rennesdev.fr — ${NOW} (Paris)
 📦 ${NB_UP} conteneurs : ${CONT_UP}
 🌐 HTTPS ${HTTPS_LINE}
 🛡️ sshd bans actifs : ${F2B:-?}
-💾 Kopia ${KOPIA_LINE} | ${PC}
-🤖 Ollama : ${OLLAMA_LINE}
-📈 Netdata : ${ND} (local)"
+💾 Kopia ${KOPIA_LINE} | ${PC}"
 
 # --- Envoi (le watchdog gère déjà les anomalies ; ici = info) ---
 "$TG" "$MSG"

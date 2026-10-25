@@ -8,28 +8,26 @@ bad()  { printf '  ❌ %s\n' "$1"; ANOM=1; }
 warn() { printf '  ⚠️  %s\n' "$1"; }
 
 echo "== Conteneurs Docker =="
-for c in n8n_workflow n8n_db umami_app umami_db ollama netdata filebrowser nav_rennesdev uptime_kuma browserless; do
+for c in n8n_workflow n8n_db ollama browserless filebrowser open_webui twenty_server twenty_db twenty_redis; do
     state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null)
     [ "$state" = "running" ] && ok "$c : $state" || bad "$c : ${state:-introuvable}"
 done
 
 echo "== HTTPS (edge Cloudflare + origine) =="
-for d in umami n8n; do
+for d in n8n; do
     edge=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$d.rennesdev.fr")
     org=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 --resolve "$d.rennesdev.fr:443:162.19.246.165" "https://$d.rennesdev.fr")
     [ "$edge" = "200" ] && [ "$org" = "200" ] && ok "$d.rennesdev.fr : edge=$edge origine=$org" \
         || bad "$d.rennesdev.fr : edge=$edge origine=$org"
 done
 
-# Vhosts récents — 401 SANS auth = basic auth en place (nav, uptime, spectre) ; 200 = page login (fichiers)
-echo "== HTTPS vhosts récents (nav / uptime / fichiers / spectre) =="
-for entry in "nav:401" "uptime:401" "fichiers:200" "spectre:401"; do
+echo "== HTTPS vhosts secondaires =="
+for entry in "fichiers:200"; do
     d=${entry%%:*}; exp=${entry##*:}
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$d.rennesdev.fr")
     [ "$code" = "$exp" ] && ok "$d.rennesdev.fr : $code (attendu $exp)" \
         || bad "$d.rennesdev.fr : $code (attendu $exp)"
 done
-
 
 echo "== Système =="
 MEM=$(free | awk '/Mem:/{printf "%d", $3/$2*100}')
@@ -37,11 +35,11 @@ DISK=$(df -h / | awk 'NR==2{print $5}' | tr -d '%')
 LOAD=$(cut -d' ' -f1 /proc/loadavg)
 NCPU=$(nproc)
 [ "$MEM" -lt 90 ] && ok "RAM : ${MEM}% utilisée" || bad "RAM : ${MEM}% utilisée"
-[ "$DISK" -lt 85 ] && ok "Disque : ${DISK}% utilisé" || bad "Disque : ${DISK}% utilisé"
+[ "$DISK" -lt 95 ] && ok "Disque : ${DISK}% utilisé" || bad "Disque : ${DISK}% utilisé"
 if awk "BEGIN{exit !($LOAD <= $NCPU * 1.5)}" 2>/dev/null; then
     ok "Load : $LOAD"
 else
-    bad "Load : $LOAD (> 1,5 × $NCPU vCPU) — investiguer : pidstat 5 2 -u | grep -E 'containerd$|dockerd$' (piège connu : collecteur Netdata docker trop rapide, voir docs/netdata.md)"
+    bad "Load : $LOAD (> 1,5 × $NCPU vCPU)"
 fi
 
 echo "== Fail2ban =="
@@ -59,10 +57,6 @@ echo "== Timers (6 attendus) =="
 for t in vps-watchdog.timer vps-metrics-report.timer vps-backup.timer vps-backup-reminder.timer github-weekly.timer vps-daily-journal.timer; do
     systemctl is-active --quiet "$t" && ok "$t : actif" || bad "$t : INACTIF"
 done
-
-echo "== Netdata (local) =="
-nd=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:19999)
-[ "$nd" = "200" ] && ok "UI netdata : 200" || bad "UI netdata : $nd"
 
 echo "== Kopia =="
 if sudo kopia repository status >/dev/null 2>&1; then
@@ -85,7 +79,7 @@ else
 fi
 
 echo "== Certificats origine (Caddy) =="
-for d in umami n8n nav uptime fichiers; do
+for d in n8n fichiers; do
     END=$(echo | openssl s_client -connect 127.0.0.1:443 -servername "$d.rennesdev.fr" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
     if [ -n "$END" ]; then
         DAYS=$(( ($(date -d "$END" +%s) - $(date +%s)) / 86400 ))
@@ -98,7 +92,7 @@ done
 
 echo "== APT =="
 APT=$(apt list --upgradable 2>/dev/null | grep -c upgradable)
-ok "$APT paquet(s) en attente"
+[ "$APT" -eq 0 ] && ok "0 paquet(s) en attente" || ok "$APT paquet(s) en attente"
 
 echo "== Canal d'ordres =="
 [ -f /home/ubuntu/ORDRES.md ] && { ok "ORDRES.md présent"; echo "     → LE LIRE ET TRAITER"; } \

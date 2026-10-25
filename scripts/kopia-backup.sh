@@ -20,7 +20,7 @@ fi
 # Snapshots :
 # 1. Staging (dumps + configs)
 kopia snapshot create /var/backups/kopia-staging
-# 2. Volumes Docker bruts (ceinture + bretelles) — modèles ollama exclus (re-téléchargeables)
+# 2. Volumes Docker bruts (ceinture + bretelles)
 kopia snapshot create /var/lib/docker/volumes \
   --ignore-cache --skip-ipfs-announcements 2>/dev/null || kopia snapshot create /var/lib/docker/volumes
 # 3. Fichiers du home (compose, notes)
