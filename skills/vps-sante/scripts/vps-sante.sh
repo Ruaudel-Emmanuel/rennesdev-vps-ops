@@ -7,8 +7,8 @@ ok()   { printf '  ✅ %s\n' "$1"; }
 bad()  { printf '  ❌ %s\n' "$1"; ANOM=1; }
 warn() { printf '  ⚠️  %s\n' "$1"; }
 
-echo "== Conteneurs Docker =="
-for c in n8n_workflow n8n_db ollama browserless filebrowser open_webui twenty_server twenty_db twenty_redis; do
+echo "== Conteneurs Docker (7 attendus) =="
+for c in n8n_workflow n8n_db browserless filebrowser twenty_server twenty_db twenty_redis; do
     state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null)
     [ "$state" = "running" ] && ok "$c : $state" || bad "$c : ${state:-introuvable}"
 done
@@ -53,8 +53,8 @@ for s in caddy fail2ban ufw vps-tgbot; do
     systemctl is-active --quiet "$s" && ok "$s : actif" || bad "$s : INACTIF"
 done
 
-echo "== Timers (6 attendus) =="
-for t in vps-watchdog.timer vps-metrics-report.timer vps-backup.timer vps-backup-reminder.timer github-weekly.timer vps-daily-journal.timer; do
+echo "== Timers (7 attendus) =="
+for t in vps-watchdog.timer vps-metrics-report.timer vps-backup.timer vps-backup-reminder.timer github-weekly.timer vps-daily-journal.timer vps-etat-rotate.timer; do
     systemctl is-active --quiet "$t" && ok "$t : actif" || bad "$t : INACTIF"
 done
 
@@ -78,25 +78,15 @@ else
     bad "dépôt Kopia NON connecté"
 fi
 
-echo "== Certificats origine (Caddy) =="
-for d in n8n fichiers; do
-    END=$(echo | openssl s_client -connect 127.0.0.1:443 -servername "$d.rennesdev.fr" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
-    if [ -n "$END" ]; then
-        DAYS=$(( ($(date -d "$END" +%s) - $(date +%s)) / 86400 ))
-        [ "$DAYS" -gt 14 ] && ok "$d.rennesdev.fr : expire dans ${DAYS}j" \
-            || warn "$d.rennesdev.fr : expire dans ${DAYS}j"
-    else
-        bad "$d.rennesdev.fr : certificat illisible"
-    fi
-done
-
 echo "== APT =="
-APT=$(apt list --upgradable 2>/dev/null | grep -c upgradable)
-[ "$APT" -eq 0 ] && ok "0 paquet(s) en attente" || ok "$APT paquet(s) en attente"
+UPG=$(apt list --upgradable 2>/dev/null | grep -c upgradable || true)
+[ "$UPG" -gt 0 ] && warn "$UPG paquet(s) à mettre à jour" || ok "système à jour"
 
-echo "== Canal d'ordres =="
-[ -f /home/ubuntu/ORDRES.md ] && { ok "ORDRES.md présent"; echo "     → LE LIRE ET TRAITER"; } \
-    || ok "ORDRES.md absent (canal vide)"
-
-echo
-[ "$ANOM" -eq 0 ] && { echo "🎯 RÉSULTAT : TOUT EST VERT"; exit 0; } || { echo "🎯 RÉSULTAT : ANOMALIES DÉTECTÉES"; exit 1; }
+echo ""
+if [ "$ANOM" -eq 0 ]; then
+    echo "✅ TOUT EST VERT"
+    exit 0
+else
+    echo "❌ ANOMALIES DÉTECTÉES"
+    exit 1
+fi

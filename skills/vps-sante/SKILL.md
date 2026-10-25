@@ -11,7 +11,7 @@ description: Contrôle de santé complet du VPS rennesdev.fr (conteneurs, HTTPS,
    config du serveur) :
 
 ```bash
-bash ~/.agents/skills/vps-sante/scripts/vps-sante.sh
+bash ~/projects/rennesdev-vps-ops/skills/vps-sante/scripts/vps-sante.sh
 ```
 
 2. **Interpréter** : le script affiche ✅/❌/⚠️ par check et renvoie
@@ -30,8 +30,9 @@ bash ~/.agents/skills/vps-sante/scripts/vps-sante.sh
 
 ## Points de repère
 
-- Valeurs normales : RAM < 90 % (le bot IA ollama peut la faire monter à ~85 %
-  temporairement — cf. ETAT-VPS.md), disque < 95 %, 9 conteneurs, 6 timers.
+- Valeurs normales : RAM < 90 %, disque < 95 %, **7 conteneurs**, **7 timers**.
+- IA : les workflows n8n utilisent l'API **Mistral Cloud** (pas de LLM local —
+  Ollama supprimé le 25/10/2026, non adapté au VPS).
 - Kopia : le PC peut être éteint la nuit (port 51515 fermé = ⚠️ et non ❌) ;
   le dépôt doit rester connectable et avoir un snapshot de moins de ~8 jours
   (backup hebdo le dimanche 19:30 Paris).
