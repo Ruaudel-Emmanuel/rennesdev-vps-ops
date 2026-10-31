@@ -4,13 +4,6 @@ Ce repo est l'exploitation réelle, en production, du socle que je déploie pour
 
 ## 🤝 Ce projet, c'est aussi mon métier
 
-**Emmanuel Ruaudel — Directeur de la Transformation Numérique pour TPE/PME.**
-J'aide les dirigeants à libérer 5 à 10 h par semaine en automatisant leurs tâches
-répetitives : audit des processus, cas d'usage IA à fort ROI, déploiement et
-fiabilisation (n8n · Python · IA locale).
-
-📧 [ruaudel.emmanuel@orange.fr](mailto:ruaudel.emmanuel@orange.fr) · 🌐 [rennesdev.fr](https://rennesdev.fr)
-
 Scripts et unités systemd d'exploitation du VPS **rennesdev.fr** (OVH, Ubuntu 26.04) :
 surveillance, alertes **Telegram**, sauvegardes **Kopia** vers un PC Windows 11 (via Tailscale), et sauvegarde à la demande par simple commande Telegram.
 
@@ -95,3 +88,10 @@ Depuis le VPS : `sudo ssh <user>@100.118.76.30 "schtasks /run /tn KopiaServer"` 
 - UFW : 22/80/443 uniquement
 - Bot Telegram : chat_id whitelisté, aucune commande arbitraire exécutée
 - Secrets : jamais dans les scripts ni le repo (fichiers root 600)
+
+**Emmanuel Ruaudel — Directeur de la Transformation Numérique pour TPE/PME.**
+J'aide les dirigeants à libérer 5 à 10 h par semaine en automatisant leurs tâches
+répetitives : audit des processus, cas d'usage IA à fort ROI, déploiement et
+fiabilisation (n8n · Python · IA locale).
+
+📧 [ruaudel.emmanuel@orange.fr](mailto:ruaudel.emmanuel@orange.fr) · 🌐 [rennesdev.fr](https://rennesdev.fr)
