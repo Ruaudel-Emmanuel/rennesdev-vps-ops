@@ -2,8 +2,6 @@
 
 Ce repo est l'exploitation réelle, en production, du socle que je déploie pour mes clients : surveillance, alertes et sauvegardes qui tournent seules.
 
-## 🤝 Ce projet, c'est aussi mon métier
-
 Scripts et unités systemd d'exploitation du VPS **rennesdev.fr** (OVH, Ubuntu 26.04) :
 surveillance, alertes **Telegram**, sauvegardes **Kopia** vers un PC Windows 11 (via Tailscale), et sauvegarde à la demande par simple commande Telegram.
 
