@@ -89,7 +89,6 @@ Depuis le VPS : `sudo ssh <user>@100.118.76.30 "schtasks /run /tn KopiaServer"` 
 
 **Emmanuel Ruaudel — Directeur de la Transformation Numérique pour TPE/PME.**
 J'aide les dirigeants à libérer 5 à 10 h par semaine en automatisant leurs tâches
-répetitives : audit des processus, cas d'usage IA à fort ROI, déploiement et
-fiabilisation (n8n · Python · IA locale).
+répétitives.
 
 📧 [ruaudel.emmanuel@orange.fr](mailto:ruaudel.emmanuel@orange.fr) · 🌐 [rennesdev.fr](https://rennesdev.fr)
