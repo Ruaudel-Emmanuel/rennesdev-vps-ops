@@ -58,6 +58,47 @@ curl -s -X POST https://n8n.rennesdev.fr/webhook/github-push \
 - **Templates GitHub** mergés sur Nav.rennesdev, Lecteur-PDF, construction-site-tracker : `.github/ISSUE_TEMPLATE/` (bug.yml, idee.yml, config.yml blank_issues_enabled: false) + `PULL_REQUEST_TEMPLATE.md` (checklist CI/doc/secret). À déployer sur les autres repos actifs si demandé.
 - **À venir (phase B)** : workflow n8n « alerte VPS → issue GitHub » (watchdog, push échoué, journal) avec auto-close par le commit de fix ; radar de cadence → suggestion d'issue roadmap.
 
+## Nettoyage hebdo artefacts/caches Actions (12/11)
+- Repo dédié **`github-actions-cleanup`** (privé) : `cleanup.py` (liste `/user/repos` non archivés → supprime tous les artefacts + caches via API, per_page=100, rapport Telegram + `/var/log/github-cleanup-last.txt`), `README.md`, `.github/workflows/test-artifact.yml` (workflow_dispatch qui upload 1 Mo pour tester le cycle).
+- **Cron = systemd timer** `github-cleanup.timer` (`OnCalendar=Sun 04:00 Europe/Paris`, Persistent) → `github-cleanup.service` (oneshot, `python3 /home/ubuntu/projects/github-actions-cleanup/cleanup.py`). Units dans `~/projects/rennesdev-vps-ops/systemd/` + `/etc/systemd/system/`. Test 12/11 : dispatch test-artifact → artefact 1 Mo créé → `cleanup.py` l'a supprimé (artifacts=0), service OK, 21 dépôts actifs scannés.
+- **Scope PAT requis** : Actions read+write sur les dépôts (fine-grained : sinon 404 sur `/actions/artifacts`). PAT actuel OK (testé 12/11, 204 dispatch + 204 delete). PAT voit 71 repos (sélection fine-grained), 21 non archivés.
+- Commandes : `sudo python3 ~/projects/github-actions-cleanup/cleanup.py [--dry-run] [--repo NOM]` · `systemctl start github-cleanup.service` · `systemctl list-timers github-cleanup.timer`.
+
+## Link checker hebdo (12/11)
+- Repo dédié **`link-checker`** (privé) : `check_links.py` — scanne le README des 21 dépôts actifs + les .html/.md des repos site (`rennesdev`, `RuaudelEmmanuel.github.io`, `RuaudelPhoto`), check chaque lien http(s) (HEAD→GET, UA navigateur, 15 s, 150 ms de délai) : 2xx/3xx OK, 401/403/**999** = « protégé » (bot), 404/410/5xx/timeout = mort. localhost & paramètres vides exclus. Sorties : `/var/log/link-checker-last.txt` + `.json` + Telegram. Exit 1 si morts (alerte dans journalctl).
+- **Cron = systemd timer** `link-checker.timer` : **samedi 05h00 Europe/Paris** (décalé du cleanup dimanche 04h00) → `link-checker.service`. Units dans `~/projects/rennesdev-vps-ops/systemd/` + `/etc/systemd/system/`, enable ✅.
+- Test 12/11 : 22 fichiers, 50 liens uniques → 47 OK, 2 protégés (LinkedIn 999, Malt 403), **1 mort confirmé : `github.com/Ruaudel-Emmanuel/construction-site-tracker` (404 public) dans `rennesdev/portofolio.html` ligne 537** — repo renommé `Suivi-d-Interventions-avec-Photos` (lien à corriger manuellement).
+- Commandes : `sudo python3 ~/projects/link-checker/check_links.py [--repo NOM] [--max N]` · `systemctl start link-checker.service`.
+
+## Secret scan hebdo gitleaks (12/11)
+- Repo dédié **`secret-scan`** (privé) : `scan_secrets.py` + `.gitleaks.toml` + README. gitleaks **v8.30.1** installé dans `/usr/local/bin/gitleaks`.
+- Pour chaque dépôt actif : clone `--mirror` dans `/var/cache/secret-scan/<repo>.git` (auth via **credential helper inline** `-c credential.helper='!f(){...}'` → le PAT n'est JAMAIS persisté dans `.git/config` — vérifié), update via `remote update` si déjà cloné, puis `gitleaks detect --redact` (secrets masqués dans les rapports).
+- Sorties : Telegram + `/var/log/secret-scan-last.txt`/`.json` (root 600, umask 077). Exit 1 si findings. Faux positifs → allowlist dans `.gitleaks.toml`.
+- **Cron = systemd timer** `secret-scan.timer` : **mardi 03h00 Europe/Paris** → prochain run mar. 17/11. Units dans `~/projects/rennesdev-vps-ops/systemd/` + `/etc/systemd/system/`.
+- Test 12/11 (run complet via service) : **23 dépôts scannés, historique complet, 0 finding** 🎉.
+- Commandes : `sudo python3 ~/projects/secret-scan/scan_secrets.py [--repo NOM] [--max-repos N]` · `systemctl start secret-scan.service`.
+- ⚠️ Si un vrai secret est un jour détecté : révoquer le token immédiatement, purger l'historique (`git filter-repo`), noter dans une issue privée du repo secret-scan.
+
+## Bot stale (actions/stale) — 1x/jour, cron NATIF GitHub (12/11)
+- Repo dédié **`stale-bot`** (privé) : `stale.yml` (template déployé dans chaque repo) + `deploy_stale.py` + README.
+- **Pas redondant avec GitHub-Auditor** : l'Auditor ne fait que *rapporter* (LLM, 06h00) ; stale *agit* (label « stale » à 60 j, fermeture auto à 74 j pour les issues ; PR : 90 j/120 j ; exemptions `pinned,security`). Le cron tourne sur les runners GitHub (`cron: '30 3 * * *'` UTC) → **zéro ressource VPS**, pas de systemd timer. Déclenchable à la main (workflow_dispatch).
+- Déploiement 12/11 : **22 dépôts pushés sur main + 1 PR ouverte** (Lecteur-PDF, main protégé par ruleset → PR #9 `chore/add-stale-bot`, à merger manuellement) + 0 erreur. Test : dispatch manuel sur GitHub-Auditor → run `success`. PAT requis : Contents read+write.
+- Commandes : `sudo python3 ~/projects/stale-bot/deploy_stale.py [--repo NOM] [--force]`.
+
+## Audit mensuel Actions non épinglées en SHA (12/11)
+- Repo dédié **`actions-audit`** (privé) : `audit_actions.py` + README. Scanne tous les `.github/workflows/*.yml` des dépôts actifs (pyyaml), classe chaque `uses:` : SHA-40 ✅ / tag ❌ (avec **SHA résolu** via `git ls-remote` pour le fix) / `docker://` ⚠️ / `./` local ✅. Sorties Telegram + `/var/log/actions-audit-last.{txt,json}` (600). Exit 1 si non épinglées.
+- **Cron = systemd timer** `actions-audit.timer` : **1er du mois 06h00 Europe/Paris** (`OnCalendar=*-*-01 06:00:00 Europe/Paris`) → prochain run 01/12.
+- Premier run 12/11 : 25 dépôts / 27 fichiers → 30 non épinglées, dont 23× notre propre `stale@v11` déployé le jour même → template `stale-bot/stale.yml` corrigé en SHA (`actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93` = v11) + redéployé `--force` sur 24 dépôts (PR #9 Lecteur-PDF mise à jour aussi). Re-run : **7 restantes** (Lecteur-PDF ci.yml ×4, live-readme ×2, github-actions-cleanup test-artifact ×1) avec SHA prêts dans le rapport.
+- **fix_pins.py** (dans le repo actions-audit) : lit `/var/log/actions-audit-last.json` et pousse les SHA (push main, ou branche `chore/pin-actions-sha` + PR si main protégé). Appliqué 12/11 : live-readme + github-actions-cleanup pushés ✅, Lecteur-PDF → **PR #10** (4 pins, à merger — CI ruleset avec auto-merge). Re-audit : plus que Lecteur-PDF en attendant le merge.
+- Commandes : `sudo python3 ~/projects/actions-audit/audit_actions.py [--repo NOM]` · `sudo python3 ~/projects/actions-audit/fix_pins.py [--dry-run] [--repo NOM]` · `systemctl start actions-audit.service`.
+
+## Récap des crons GitHub (12/11)
+| Tâche | Timer | Jour/heure (Paris) | Repo |
+|---|---|---|---|
+| Secret scan gitleaks (historique) | `secret-scan.timer` | mardi 03h00 | `secret-scan` |
+| Link checker (README + sites) | `link-checker.timer` | samedi 05h00 | `link-checker` |
+| Nettoyage artefacts/caches Actions | `github-cleanup.timer` | dimanche 04h00 | `github-actions-cleanup` |
+
 ## Inventaire & hygiène
 - 97 dépôts → **79 archivés** (15/09), **18 actifs** conservés. Doublons historiques : Fiscale-vps/Fisclale-vps/Fiscale_vps, Devis-Python/Devis-Python-Steamlit.
 - Repos récents : `Lecteur-PDF` (18/09), `VPS-Rennesdev.fr` (journal VPS, timer quotidien 23h), `git-ops-journal` (gestion du compte + automatisations), `construction-site-tracker` (Suivi Interventions, Play Store).

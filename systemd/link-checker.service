@@ -1,0 +1,6 @@
+[Unit]
+Description=Vérificateur hebdo de liens morts (README + sites) — repo link-checker
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/ubuntu/projects/link-checker/check_links.py

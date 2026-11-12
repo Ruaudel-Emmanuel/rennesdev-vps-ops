@@ -1,0 +1,9 @@
+[Unit]
+Description=Link checker hebdo — samedi 05h00 Europe/Paris
+
+[Timer]
+OnCalendar=Sat 05:00:00 Europe/Paris
+Persistent=true
+
+[Install]
+WantedBy=timers.target

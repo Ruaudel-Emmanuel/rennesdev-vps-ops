@@ -1,0 +1,9 @@
+[Unit]
+Description=Audit Actions non épinglées en SHA — le 1er de chaque mois à 06h00 Europe/Paris
+
+[Timer]
+OnCalendar=*-*-01 06:00:00 Europe/Paris
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -58,26 +58,6 @@ for t in vps-watchdog.timer vps-metrics-report.timer vps-backup.timer vps-backup
     systemctl is-active --quiet "$t" && ok "$t : actif" || bad "$t : INACTIF"
 done
 
-echo "== Kopia =="
-if sudo kopia repository status >/dev/null 2>&1; then
-    ok "dépôt connecté"
-    LAST=$(sudo kopia snapshot list 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' | sort | tail -1)
-    if [ -n "$LAST" ]; then
-        AGE=$(( ($(date +%s) - $(date -d "$LAST" +%s)) / 3600 ))
-        [ "$AGE" -lt 200 ] && ok "dernier snapshot il y a ${AGE}h ($LAST)" \
-            || warn "dernier snapshot il y a ${AGE}h ($LAST)"
-    else
-        bad "aucun snapshot dans le dépôt"
-    fi
-    if timeout 5 bash -c 'echo > /dev/tcp/100.118.76.30/51515' 2>/dev/null; then
-        ok "PC:51515 ouvert"
-    else
-        warn "PC:51515 fermé (PC éteint — normal la nuit, cf. watchdog)"
-    fi
-else
-    bad "dépôt Kopia NON connecté"
-fi
-
 echo "== APT =="
 UPG=$(apt list --upgradable 2>/dev/null | grep -c upgradable || true)
 [ "$UPG" -gt 0 ] && warn "$UPG paquet(s) à mettre à jour" || ok "système à jour"

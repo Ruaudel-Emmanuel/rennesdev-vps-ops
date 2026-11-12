@@ -1,0 +1,6 @@
+[Unit]
+Description=Audit mensuel des GitHub Actions non épinglées en SHA (repo actions-audit)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/ubuntu/projects/actions-audit/audit_actions.py

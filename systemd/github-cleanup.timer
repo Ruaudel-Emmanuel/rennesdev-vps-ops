@@ -1,0 +1,9 @@
+[Unit]
+Description=Nettoyage hebdo GitHub Actions — dimanche 04h00 Europe/Paris
+
+[Timer]
+OnCalendar=Sun 04:00:00 Europe/Paris
+Persistent=true
+
+[Install]
+WantedBy=timers.target

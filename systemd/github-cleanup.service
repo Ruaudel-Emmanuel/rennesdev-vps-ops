@@ -1,0 +1,6 @@
+[Unit]
+Description=Nettoyage hebdo artefacts/caches GitHub Actions (repo github-actions-cleanup)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/ubuntu/projects/github-actions-cleanup/cleanup.py
