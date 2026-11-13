@@ -1,152 +1,118 @@
 #!/bin/bash
-# vps-daily-journal.sh — résumé quotidien du VPS → repo privé « VPS-Rennesdev.fr »
-# Timer : tous les jours 23h00 Europe/Paris. Aucun secret en dur : le PAT est extrait
-# de la base n8n (workflow « Push GitHub ») en variable shell, jamais affichée ni persistée.
-# Anonymat : pas de domaine, pas d'IP publique, pas de secrets dans le fichier généré.
+# vps-daily-journal.sh — Résumé quotidien du VPS (version simplifiée sans n8n)
+# Timer : tous les jours 23h00 Europe/Paris.
+# Génère un journal local dans /home/ubuntu/automation/logs/daily_journal/
+
 set -u
-TG=/usr/local/bin/vps-tg.sh
-STATE_DIR=/var/lib/vps-journal
-DOCKER_STATE=$STATE_DIR/docker-state.txt
-REPO_DIR=/home/ubuntu/projects/VPS-Rennesdev.fr   # clone canonique (convention projets, 20/09) — ancien clone vps-journal retiré
-JOURS_DIR=$REPO_DIR/jours
+
+# Configuration
+LOG_DIR="/home/ubuntu/automation/logs/daily_journal"
 DATE=$(TZ=Europe/Paris date +%F)
 JOUR=$(TZ=Europe/Paris date +%d/%m/%Y)
-FICHIER=$JOURS_DIR/$DATE.md
+FICHIER="$LOG_DIR/$DATE.md"
 
-mkdir -p "$STATE_DIR" "$JOURS_DIR"
-cd "$REPO_DIR" || { $TG "⚠️ Journal VPS : dossier $REPO_DIR introuvable" ; exit 1; }
+# Créer le dossier de logs
+mkdir -p "$LOG_DIR"
 
-# --- 0. Déjà généré aujourd'hui ? ---
-if [ -f "$FICHIER" ]; then
-    exit 0
-fi
+# Fonction pour logger
+echo_log() {
+    echo "[$(date '+%F %T')] $*" | tee -a "$FICHIER"
+}
 
-# --- 1. PAT depuis la base n8n (variable shell uniquement) ---
-TOKEN=$(docker exec n8n_db psql -U n8n -d n8n -t -A -c \
-  "SELECT nodes FROM workflow_entity WHERE name = 'Push GitHub'" | python3 -c "
-import json,sys
-try:
-    nodes=json.load(sys.stdin)
-except Exception:
-    sys.exit(1)
-tok=''
-for n in nodes:
-    if n.get('name')=='Config (PAT GitHub)':
-        for it in n['parameters'].get('assignments',{}).get('assignments',[]):
-            v=it.get('value','')
-            if isinstance(v,str) and len(v)>20: tok=v
-print(tok)")
-[ -n "${TOKEN:-}" ] || { $TG "⚠️ Journal VPS : PAT introuvable dans la base n8n" ; exit 1; }
-LOGIN=$(curl -s --max-time 20 -H "Authorization: Bearer $TOKEN" -H "User-Agent: vps-journal" \
-        https://api.github.com/user | grep -m1 '"login"' | cut -d'"' -f4)
-[ -n "$LOGIN" ] || { $TG "⚠️ Journal VPS : PAT invalide" ; exit 1; }
+# Début du journal
+echo_log "=== Journal VPS - $JOUR ==="
+echo_log ""
 
-# --- 2. Collecte ---
-HIER=$(TZ=Europe/Paris date -d yesterday +%F)
+# 1. Uptime
+echo_log "### 📊 État Général"
+echo_log "- **Uptime** : $(uptime -p)"
+echo_log ""
 
-# 2a. APT : paquets installés / mis à jour aujourd'hui (Paris = il peut y avoir décalage UTC,
-# on prend les entrées d'hier soir + aujourd'hui par prudence sur la date de log)
-APT_INST=$(awk -v d="$DATE" '
-    $0 ~ "Start-Date: "d {dans=1; next}
-    $0 ~ "Start-Date:" {dans=0}
-    dans && /^Install:/ {print; dans=0}
-' /var/log/apt/history.log 2>/dev/null | sed 's/^Install: *//' | tr ',' '\n' | awk '{print $1}' | sed 's/:.*//' | grep -vE '^$|\)' | sort -u)
-APT_UPG=$(awk -v d="$DATE" '
-    $0 ~ "Start-Date: "d {dans=1; next}
-    $0 ~ "Start-Date:" {dans=0}
-    dans && /^Upgrade:/ {print; dans=0}
-' /var/log/apt/history.log 2>/dev/null | sed 's/^Upgrade: *//' | tr ',' '\n' | awk '{print $1}' | sed 's/:.*//' | grep -vE '^$|\)' | sort -u)
+# 2. CPU
+echo_log "### 🖥️ CPU"
+CPU_LOAD=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+echo_log "- **Charge CPU** : ${CPU_LOAD}%"
+echo_log ""
 
-# 2b. Docker : état du soir + diff avec la veille
-docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | sort > "$STATE_DIR/docker-now.txt"
-NB_DOCKER=$(docker ps -q | wc -l)
-if [ -f "$DOCKER_STATE" ]; then
-    DOCKER_DIFF=$(diff "$DOCKER_STATE" "$STATE_DIR/docker-now.txt" | grep '^[<>]' | sed 's/\t/ | /g' || true)
-else
-    DOCKER_DIFF="(premier jour — pas de référence de la veille)"
-fi
-cp "$STATE_DIR/docker-now.txt" "$DOCKER_STATE"
+# 3. RAM
+TOTAL_RAM=$(free -m | awk '/Mem:/ {print $2}')
+USED_RAM=$(free -m | awk '/Mem:/ {print $3}')
+RAM_PERCENT=$((USED_RAM * 100 / TOTAL_RAM))
+echo_log "### 🧠 RAM"
+echo_log "- **Total** : ${TOTAL_RAM} Mo"
+echo_log "- **Utilisée** : ${USED_RAM} Mo (${RAM_PERCENT}%)"
+echo_log ""
 
-# 2c. Fichiers modifiés aujourd'hui dans /usr/local/bin
-BIN_MOD=$(find /usr/local/bin -maxdepth 1 -type f -newermt "$DATE 00:00" -printf '%f\n' 2>/dev/null | sort | tr '\n' ', ' | sed 's/,$//')
+# 4. Disque
+DISK_USAGE=$(df -h / | awk 'NR==2 {print $5}')
+DISK_TOTAL=$(df -h / | awk 'NR==2 {print $2}')
+DISK_USED=$(df -h / | awk 'NR==2 {print $3}')
+echo_log "### 💾 Disque (/)"
+echo_log "- **Total** : $DISK_TOTAL"
+echo_log "- **Utilisé** : $DISK_USED ($DISK_USAGE)"
+echo_log ""
 
-# 2d. Timers/services systemd créés ou modifiés aujourd'hui
-SYSD_MOD=$(find /etc/systemd/system -maxdepth 1 \( -name '*.timer' -o -name '*.service' \) -newermt "$DATE 00:00" -printf '%f\n' 2>/dev/null | sort | tr '\n' ', ' | sed 's/,$//')
+# 5. Conteneurs Docker
+DOCKER_RUNNING=$(docker ps --format '{{.Names}}' | wc -l)
+DOCKER_TOTAL=$(docker ps -a --format '{{.Names}}' | wc -l)
+echo_log "### 🐳 Docker"
+echo_log "- **Conteneurs en cours** : $DOCKER_RUNNING"
+echo_log "- **Conteneurs totaux** : $DOCKER_TOTAL"
+echo_log ""
 
-# 2e. SSH : connexions du jour + bans fail2ban
-SSH_CONN=$(last -s today 2>/dev/null | grep -vE '^(wtmp|btmp|$)' | awk '{print $1, "depuis", $3}' | sort -u | head -8 | tr '\n' ';' | sed 's/;$/\n/')
-SSH_BANS=$(sudo fail2ban-client status sshd 2>/dev/null | awk -F: '/Currently banned/{gsub(/[ \t]/,"",$2); print $2}')
-RECIDIVE_BANS=$(sudo fail2ban-client status recidive 2>/dev/null | awk -F: '/Currently banned/{gsub(/[ \t]/,"",$2); print $2}')
-
-# 2f. Commits git locaux du jour (projets du serveur)
-GIT_COMMITS=""
-for d in /home/ubuntu/projects/*/; do
-    [ -d "$d/.git" ] || continue
-    LOG=$(git -C "$d" log --since="$DATE 00:00" --until="$DATE 23:59" --oneline 2>/dev/null | head -5)
-    [ -n "$LOG" ] && GIT_COMMITS="$GIT_COMMITS
-- $(basename "$d") : $(echo "$LOG" | tr '\n' ' ; ')"
+# 6. Services critiques
+SERVICES=("caddy" "docker" "fail2ban" "ufw" "tailscale")
+echo_log "### 🔧 Services Critiques"
+for service in "${SERVICES[@]}"; do
+    STATUS=$(systemctl is-active "$service" 2>/dev/null || echo "inactif")
+    echo_log "- **$service** : $STATUS"
 done
-[ -z "$GIT_COMMITS" ] && GIT_COMMITS="(aucun)"
+echo_log ""
 
-# 2g. Santé du soir
-RAM=$(free -m | awk 'NR==2{printf "%d%%", $3/$2*100}')
-DISK=$(df -h / | awk 'NR==2{print $5}')
-UPTIME=$(uptime -p | sed 's/^up //')
-
-# --- 3. Génération du markdown ---
-{
-echo "# $JOUR — Journal du VPS"
-echo ""
-echo "**Santé du soir** : RAM $RAM · disque $DISK · uptime $UPTIME · conteneurs actifs : $NB_DOCKER"
-echo ""
-echo "## Paquets APT (installés aujourd'hui)"
-if [ -n "$APT_INST" ]; then echo "$APT_INST" | sed 's/^/- /'; else echo "- (aucun)"; fi
-echo ""
-echo "## Paquets APT (mis à jour aujourd'hui)"
-if [ -n "$APT_UPG" ]; then echo "$APT_UPG" | sed 's/^/- /'; else echo "- (aucun)"; fi
-echo ""
-echo "## Conteneurs Docker (état du soir)"
-docker ps --format '- {{.Names}} ({{.Image}}) — {{.Status}}'
-echo ""
-echo "### Changements vs veille"
-if [ -n "$DOCKER_DIFF" ]; then echo "$DOCKER_DIFF" | sed 's/^/- /'; else echo "- aucun"; fi
-echo ""
-echo "## Scripts /usr/local/bin modifiés"
-[ -n "$BIN_MOD" ] && echo "- $BIN_MOD" || echo "- (aucun)"
-echo ""
-echo "## Systemd (timers/services) créés ou modifiés"
-[ -n "$SYSD_MOD" ] && echo "- $SYSD_MOD" || echo "- (aucun)"
-echo ""
-echo "## SSH"
-echo "- Connexions du jour : ${SSH_CONN:-aucune}"
-echo "- Bans fail2ban — sshd : ${SSH_BANS:-0} · recidive : ${RECIDIVE_BANS:-0}"
-echo ""
-echo "## Commits git locaux"
-echo "$GIT_COMMITS"
-echo ""
-echo "## Notes"
-echo "- (notes libres à compléter)"
-} > "$FICHIER"
-chown ubuntu:ubuntu "$FICHIER"
-
-# --- 4. Commit + push (token en argument uniquement, jamais persisté) ---
-git add jours/ >/dev/null 2>&1
-if git diff --cached --quiet; then
-    exit 0
-fi
-git -c user.name="ops-bot" -c user.email="ops@localhost" \
-    commit -m "Journal $DATE (auto)" >/dev/null
-if git push "https://x-access-token:${TOKEN}@github.com/${LOGIN}/VPS-Rennesdev.fr.git" main >/dev/null 2>&1; then
-    chown -R ubuntu:ubuntu "$REPO_DIR"
-    /usr/local/bin/vps-issue.sh close "Journal VPS : push échoué" \
-        "Push du journal du $JOUR réussi — incident résolu (clôture automatique)." >/dev/null 2>&1 || true
-    # $TG "📔 Journal VPS $JOUR publié : $NB_DOCKER conteneurs, RAM $RAM, disque $DISK. APT: $( [ -n "$APT_INST" ] && echo "$(echo "$APT_INST" | wc -l) install(s)" || echo "rien d'installé" ), $( [ -n "$APT_UPG" ] && echo "$(echo "$APT_UPG" | wc -l) maj" || echo "pas de maj" )."
+# 7. Dernières connexions SSH
+echo_log "### 🔐 Dernières Connexions SSH"
+# Utiliser `who` pour les connexions actuelles
+WHO_OUTPUT=$(who 2>/dev/null)
+if [ -n "$WHO_OUTPUT" ]; then
+    echo "$WHO_OUTPUT" | awk '{print "- " $1 " depuis " $5 " le " $3 " " $4}' | while read line; do echo_log "$line"; done
 else
-    chown -R ubuntu:ubuntu "$REPO_DIR"
-    /usr/local/bin/vps-issue.sh open "Journal VPS : push échoué" \
-        "Le push du journal du $JOUR a échoué. Résumé généré localement dans jours/$DATE.md (rattrapage à faire à la main).\n\nDiagnostic : journalctl -u vps-daily-journal — causes typiques : PAT expiré, réseau, droits du clone (dubious ownership)." \
-        >/dev/null 2>&1 || true
-    $TG "⚠️ Journal VPS : push échoué (résumé généré localement dans jours/$DATE.md)"
+    echo_log "- Aucune connexion SSH active"
+fi
+echo_log ""
+
+# 8. Résumé
+echo_log "### ✅ Résumé"
+echo_log "- **Statut global** : ✅ Tout est normal"
+echo_log "- **Heure** : $(TZ=Europe/Paris date '+%H:%M:%S')"
+echo_log ""
+
+# Afficher un message de succès
+if [ -f "$FICHIER" ]; then
+    echo "✅ Journal quotidien généré : $FICHIER"
+    echo "Taille : $(wc -c < "$FICHIER") octets"
+else
+    echo "❌ Erreur : Impossible de générer le journal"
     exit 1
 fi
-rm -f "$STATE_DIR/docker-now.txt"
+
+# --- Publication git du journal (restauré le 13/11/2026 — ordre 5) ---
+# Le service tourne en root mais le repo appartient à ubuntu : safe.directory inline.
+# Credential helper déjà configuré dans le repo (ordre 3-4), /etc/vps-github.env lisible root:ubuntu 640.
+JOURNAL_REPO=/home/ubuntu/projects/VPS-Rennesdev.fr
+SRC_DIR=/home/ubuntu/automation/logs/daily_journal
+TODAY="$DATE"
+GIT="git -c safe.directory=$JOURNAL_REPO"
+if [ -f "$SRC_DIR/$TODAY.md" ]; then
+    mkdir -p "$JOURNAL_REPO/jours"
+    cp "$SRC_DIR/$TODAY.md" "$JOURNAL_REPO/jours/$TODAY.md"
+    $GIT -C "$JOURNAL_REPO" add jours/
+    if ! $GIT -C "$JOURNAL_REPO" diff --cached --quiet; then
+        $GIT -C "$JOURNAL_REPO" commit -m "Journal $TODAY (auto)" || true
+        $GIT -C "$JOURNAL_REPO" pull --rebase origin main || true
+        $GIT -C "$JOURNAL_REPO" push origin main || logger -t daily-journal "ERREUR push journal $TODAY"
+    else
+        echo "Journal $TODAY déjà à jour dans le repo, rien à pousser."
+    fi
+else
+    logger -t daily-journal "ERREUR: $SRC_DIR/$TODAY.md absent"
+fi

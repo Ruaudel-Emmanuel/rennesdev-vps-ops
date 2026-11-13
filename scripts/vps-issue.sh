@@ -15,21 +15,12 @@ REPO=${4:-rennesdev-vps-ops}
 LABELS=${5:-incident}
 [ -n "$ACTION" ] && [ -n "$TITRE" ] || { echo "usage: vps-issue.sh open|close|close-prefix <titre|préfixe> [corps|commentaire] [repo] [labels]" >&2; exit 2; }
 
-TOKEN=$(docker exec n8n_db psql -U n8n -d n8n -t -A -c \
-  "SELECT nodes FROM workflow_entity WHERE name = 'Push GitHub'" | python3 -c "
-import json,sys
-try:
-    nodes=json.load(sys.stdin)
-except Exception:
-    sys.exit(1)
-tok=''
-for n in nodes:
-    if n.get('name')=='Config (PAT GitHub)':
-        for it in n['parameters'].get('assignments',{}).get('assignments',[]):
-            v=it.get('value','')
-            if isinstance(v,str) and len(v)>20: tok=v
-print(tok)")
-[ -n "${TOKEN:-}" ] || { echo "vps-issue: PAT introuvable dans la base n8n" >&2; exit 3; }
+# Source PAT : /etc/vps-github.env (plus de base n8n) — ordre 13/11 19:16
+ENV_GH=/etc/vps-github.env
+[ -f "$ENV_GH" ] || { echo "vps-issue: $ENV_GH absent" >&2; exit 3; }
+. "$ENV_GH"
+TOKEN=${GH_PAT:-}
+[ -n "$TOKEN" ] || { echo "vps-issue: GH_PAT vide dans $ENV_GH" >&2; exit 3; }
 LOGIN=$(curl -s --max-time 20 -H "Authorization: Bearer $TOKEN" -H "User-Agent: vps-issue" \
         https://api.github.com/user | grep -m1 '"login"' | cut -d'"' -f4)
 [ -n "$LOGIN" ] || { echo "vps-issue: PAT invalide" >&2; exit 3; }

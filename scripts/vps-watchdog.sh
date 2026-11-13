@@ -21,16 +21,16 @@ alert() {
 # Cap Telegram : tronque à 4000 caractères (unités UTF-16 — limite API Telegram = 4096)
 tg_cap() { printf '%s' "$1" | python3 -c 'import sys; t=sys.stdin.read(); sys.stdout.write(t.encode("utf-16-le")[:8000].decode("utf-16-le","ignore"))'; }
 
-# 1. Disque racine >= 85 %
+# 1. Disque racine >= 95 %
 USAGE=$(df --output=pcent / | tail -1 | tr -dc '0-9')
-[ "${USAGE:-0}" -ge 85 ] && alert "Disque: ${USAGE}% utilisé (seuil 85%)"
+[ "${USAGE:-0}" -ge 95 ] && alert "Disque: ${USAGE}% utilisé (seuil 95%)"
 
 # 2. RAM >= 90 %
 MEM=$(free | awk '/Mem:/{printf "%d", $3/$2*100}')
 [ "${MEM:-0}" -ge 90 ] && alert "RAM: ${MEM}% utilisée"
 
-# 3. Conteneurs Docker attendus
-for c in n8n_workflow n8n_db twenty_server twenty_db twenty_redis browserless filebrowser; do
+# 3. Conteneurs Docker attendus (mis à jour)
+for c in browserless vps-api-gateway prometheus n8n_workflow n8n_db twenty_server twenty_redis grafana uptime-kuma twenty_db filebrowser; do
     state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null)
     if [ "$state" != "running" ]; then
         alert "Conteneur $c: statut=${state:-introuvable}"
@@ -38,42 +38,28 @@ for c in n8n_workflow n8n_db twenty_server twenty_db twenty_redis browserless fi
 done
 
 # 4. HTTPS public (via edge Cloudflare)
-# n8n répond 401 à la racine quand il est protégé — code attendu explicite par site
-for entry in "umami.rennesdev.fr:200" "n8n.rennesdev.fr:401"; do
+# code attendu explicite par site — umami retiré le 13/11 (domaine NXDOMAIN, conteneur supprimé)
+for entry in "n8n.rennesdev.fr:200"; do
     u="${entry%%:*}"; expected="${entry##*:}"
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$u")
     [ "$code" != "$expected" ] && alert "HTTPS $u -> code $code (attendu $expected)"
 done
 
-# 5/6. Kopia : alertes UNIQUEMENT si le PC (serveur Kopia) est joignable.
-# PC fermé = situation normale (nuit, week-end) -> aucune alerte Kopia.
-PC_OPEN=0
-timeout 5 bash -c 'echo > /dev/tcp/100.118.76.30/51515' 2>/dev/null && PC_OPEN=1
-if [ "$PC_OPEN" = "1" ]; then
-    if ! kopia repo status &>/dev/null; then
-        alert "Dépôt Kopia NON CONNECTÉ alors que le PC est allumé (serveur Kopia arrêté ?)"
-    else
-        LAST_TS=$(kopia snapshot list --all 2>/dev/null | grep -oE '20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' | sort | tail -1)
-        if [ -n "$LAST_TS" ]; then
-            LAST_EPOCH=$(date -d "$LAST_TS UTC" +%s 2>/dev/null || echo 0)
-            AGE_D=$(( (NOW - LAST_EPOCH) / 86400 ))
-            [ "$AGE_D" -ge 9 ] && alert "Dernier snapshot Kopia il y a ${AGE_D} jours (PC allumé mais pas de backup)"
-        else
-            alert "Aucun snapshot Kopia trouvé"
-        fi
-    fi
-fi
+# 5. Kopia est désactivé, donc on saute cette vérification.
+# (Anciennement : vérification du dépôt Kopia si le PC était joignable)
 
 # 7. Dernier run du service de backup en échec ?
-if [ "$(systemctl is-failed vps-backup.service 2>/dev/null)" = "failed" ]; then
-    alert "vps-backup.service: dernier passage en échec ($(systemctl show -p ExecMainExitTimestamp --value vps-backup.service))"
-fi
+# (vps-backup.service a été supprimé, donc on saute cette vérification)
+# Si un jour un service de backup est réactivé, décommenter cette section.
 
-# Rien à signaler -> watchdog vert : clôturer les issues d'incidents ouvertes
+# Rien à signaler -> watchdog vert : afficher un message de succès
 if [ ${#ALERTS[@]} -eq 0 ]; then
     rm -f "$STATE_DIR"/last-alert-* 2>/dev/null
-    /usr/local/bin/vps-issue.sh close-prefix "Watchdog VPS :" \
-        "Anomalie résolue — watchdog vert le $(date -Iseconds). (clôture automatique)" >/dev/null 2>&1 || true
+    echo "✅ Watchdog VPS : Tout est normal le $(date -Iseconds)."
+    echo "- Disque : ${USAGE}% utilisé"
+    echo "- RAM : ${MEM}% utilisée"
+    echo "- Conteneurs Docker : Tous en cours d'exécution"
+    echo "- HTTPS : Tous les sites accessibles"
     exit 0
 fi
 
