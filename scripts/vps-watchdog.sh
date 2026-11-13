@@ -35,9 +35,11 @@ for c in n8n_workflow n8n_db twenty_server twenty_db twenty_redis browserless fi
 done
 
 # 4. HTTPS public (via edge Cloudflare)
-for u in umami.rennesdev.fr n8n.rennesdev.fr; do
+# n8n répond 401 à la racine quand il est protégé — code attendu explicite par site
+for entry in "umami.rennesdev.fr:200" "n8n.rennesdev.fr:401"; do
+    u="${entry%%:*}"; expected="${entry##*:}"
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$u")
-    [ "$code" != "200" ] && alert "HTTPS $u -> code $code"
+    [ "$code" != "$expected" ] && alert "HTTPS $u -> code $code (attendu $expected)"
 done
 
 # 5/6. Kopia : alertes UNIQUEMENT si le PC (serveur Kopia) est joignable.
