@@ -1,0 +1,91 @@
+{
+ "name": "Stripe — alerte paiement Telegram",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "stripe-paiement",
+    "options": {}
+   },
+   "id": "37e79f01-1e03-4787-bbbb-8682d8a33cd4",
+   "name": "Stripe — réception paiement",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "f33ff361-f927-43a0-9a15-0b56d6626d16"
+  },
+  {
+   "parameters": {
+    "jsCode": "<REDACTED_SECRET>"
+   },
+   "id": "b550a33c-f6d0-4558-8e26-bedbac29421a",
+   "name": "Formate l'alerte paiement",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    224,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "chatId": "8634051625",
+    "text": "={{ (\"\" + ($json.text)).slice(0, 4000) }}",
+    "additionalFields": {
+     "appendAttribution": false
+    }
+   },
+   "id": "ab5a1518-a9a1-42e8-b522-8dd159874105",
+   "name": "Telegram — alerte paiement",
+   "type": "n8n-nodes-base.telegram",
+   "typeVersion": 1.2,
+   "position": [
+    448,
+    0
+   ],
+   "webhookId": "f1a8bffc-e3c8-4220-8872-9a28dd34c0f2",
+   "credentials": {
+    "telegramApi": {
+     "id": "zI1PPY85HcSoOz5B",
+     "name": "Telegram account"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Stripe — réception paiement": {
+   "main": [
+    [
+     {
+      "node": "Formate l'alerte paiement",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Formate l'alerte paiement": {
+   "main": [
+    [
+     {
+      "node": "Telegram — alerte paiement",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "binaryMode": "separate",
+  "availableInMCP": true
+ },
+ "meta": {
+  "exported": "2026-11-13",
+  "note": "cap Telegram 4000 car. (UTF-16) applique le 13/11 — secrets redactes a l'export"
+ }
+}

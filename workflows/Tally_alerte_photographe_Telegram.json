@@ -1,0 +1,93 @@
+{
+ "name": "Tally — alerte photographe Telegram",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "tally-photographe",
+    "options": {}
+   },
+   "id": "6c033cc6-c669-45ca-b828-9af74a25ec4d",
+   "name": "Tally photographe — réception",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "1f7d24b9-0243-4ca2-b74c-4a523a1214e5"
+  },
+  {
+   "parameters": {
+    "jsCode": "<REDACTED_SECRET>"
+   },
+   "id": "0dc95497-71ea-4537-a26a-c3edf835b845",
+   "name": "Formate l'alerte photographe",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    224,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "chatId": "8634051625",
+    "text": "={{ (\"\" + ($json.text)).slice(0, 4000) }}",
+    "additionalFields": {
+     "appendAttribution": false
+    }
+   },
+   "id": "baa629bf-c160-401c-8ef2-4f87c284e9fe",
+   "name": "Telegram — alerte photographe",
+   "type": "n8n-nodes-base.telegram",
+   "typeVersion": 1.2,
+   "position": [
+    448,
+    0
+   ],
+   "webhookId": "df7ec2dc-0c43-4b79-b8fa-ee3af0307cc4",
+   "credentials": {
+    "telegramApi": {
+     "id": "zI1PPY85HcSoOz5B",
+     "name": "Telegram account"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Tally photographe — réception": {
+   "main": [
+    [
+     {
+      "node": "Formate l'alerte photographe",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Formate l'alerte photographe": {
+   "main": [
+    [
+     {
+      "node": "Telegram — alerte photographe",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "binaryMode": "separate",
+  "availableInMCP": true,
+  "timeSavedMode": "fixed",
+  "callerPolicy": "workflowsFromSameOwner"
+ },
+ "meta": {
+  "exported": "2026-11-13",
+  "note": "cap Telegram 4000 car. (UTF-16) applique le 13/11 — secrets redactes a l'export"
+ }
+}

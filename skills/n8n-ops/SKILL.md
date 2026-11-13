@@ -97,6 +97,10 @@ n8n est excellent pour les workflows complexes avec branches, conditions, intég
 2. Modification en base → test réel (exécution manuelle via webhook temporaire ou cron temporaire) → restaurer le cron définitif.
 3. **Export + README** (secrets → placeholders, double vérification grep) → push GitHub via webhook « Push GitHub » (skill `github-ops`).
 4. Suppression d'un workflow : supprimer l'entité d'abord (cascade FK `workflow_entity.versionId` → `workflow_history`).
+5. **🚨 RÈGLE TELEGRAM (13/11/2026) : tout message envoyé vers Telegram ne doit pas dépasser 4000 caractères** (limite API = 4096 unités UTF-16 ; au-delà → `Bad Request: message is too long` et le message n'est PAS envoyé). Cap obligatoire partout, en unités UTF-16 (un emoji = 2 unités) :
+   - nœud Telegram n8n : `text = ={{ ("" + (EXPR)).slice(0, 4000) }}` (JS slice compte en UTF-16 ✓) — en place le 13/11 sur tous les nœuds `n8n-nodes-base.telegram` (draft + snapshot actif) : Stripe, Tally ×2, Booking, GitHub Auditor, Diffusion Actus (snapshot) ;
+   - script bash : `tg_cap() { printf '%s' "$1" | python3 -c 'import sys; t=sys.stdin.read(); sys.stdout.write(t.encode("utf-16-le")[:8000].decode("utf-16-le","ignore"))'; }` puis `text="$(tg_cap "$MSG")"` — en place dans watchdog.sh (prod + repo), etat_size_check.sh, vps-backup-sunday-reminder.sh, vps-tg.sh (repo) ;
+   - script python : `text = text.encode("utf-16-le")[:8000].decode("utf-16-le", "ignore")` en tête de la fonction d'envoi — en place dans vps-tgbot.py (prod + repo), cleanup.py, check_links.py, scan_secrets.py, deploy_stale.py, audit_actions.py, fix_pins.py.
 
 ## Divers
 - Tests bout-en-bout : cron temporaire → exécution trigger → vérifier l'exécution (id, durée) → restaurer cron.

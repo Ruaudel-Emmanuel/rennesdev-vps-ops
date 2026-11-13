@@ -31,7 +31,9 @@ def api(method, **params):
 
 def send(text):
     try:
-        api("sendMessage", chat_id=CHAT_ID, text=text[:4000])
+        # Cap Telegram : 4000 caractères max (unités UTF-16 — limite API = 4096)
+        text = text.encode("utf-16-le")[:8000].decode("utf-16-le", "ignore")
+        api("sendMessage", chat_id=CHAT_ID, text=text)
     except Exception as e:
         print(f"send error: {e}", flush=True)
 

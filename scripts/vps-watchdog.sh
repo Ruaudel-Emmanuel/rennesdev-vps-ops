@@ -18,6 +18,9 @@ alert() {
     ALERTS+=("$1")
 }
 
+# Cap Telegram : tronque à 4000 caractères (unités UTF-16 — limite API Telegram = 4096)
+tg_cap() { printf '%s' "$1" | python3 -c 'import sys; t=sys.stdin.read(); sys.stdout.write(t.encode("utf-16-le")[:8000].decode("utf-16-le","ignore"))'; }
+
 # 1. Disque racine >= 85 %
 USAGE=$(df --output=pcent / | tail -1 | tr -dc '0-9')
 [ "${USAGE:-0}" -ge 85 ] && alert "Disque: ${USAGE}% utilisé (seuil 85%)"
@@ -104,6 +107,7 @@ MSG="🚨 ALERTE VPS — $HOSTNAME
 for a in "${FRESH[@]}"; do
     MSG+=$'\n❌ '"$a"
 done
+MSG=$(tg_cap "$MSG")
 
 # Envoi Telegram (échec silencieux côté script : log système uniquement)
 http=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST \

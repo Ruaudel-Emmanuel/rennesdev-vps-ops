@@ -1,0 +1,123 @@
+{
+ "name": "Booking Conseil - Stripe → Confirmation",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "booking-confirmed",
+    "options": {}
+   },
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2.1,
+   "position": [
+    0,
+    0
+   ],
+   "id": "22ea47bd-8330-4bf9-bebc-02820001e7be",
+   "name": "Webhook",
+   "webhookId": "b6ea00cc-fe5f-4600-9ff0-fe3f1ae8d609"
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "4933e4c5-43c4-4ac3-9726-4b048c23fb02",
+       "name": "email",
+       "value": "={{ $json.body.email }}",
+       "type": "string"
+      },
+      {
+       "id": "e1cf46e0-cb52-43b0-a20f-a647630ed31b",
+       "name": "nom",
+       "value": "={{ $json.body.nom }}",
+       "type": "string"
+      },
+      {
+       "id": "0f5bf8b7-d438-4147-a58b-3ae49a2b4b9c",
+       "name": "type_session",
+       "value": "={{ $json.body.type_session }}",
+       "type": "string"
+      },
+      {
+       "id": "f688aec7-7da4-49a6-be2b-8b88ceb3e2a5",
+       "name": "booking_id",
+       "value": "={{ $json.body.booking_id }}",
+       "type": "string"
+      },
+      {
+       "id": "1a6b66a0-2940-44d6-bee8-b2c45d4ab73f",
+       "name": "stripe_session_id",
+       "value": "={{ $json.body.stripe_session_id }}",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    256,
+    0
+   ],
+   "id": "21efb248-cdb3-4f6c-b565-700f636feace",
+   "name": "Edit Fields"
+  },
+  {
+   "parameters": {
+    "chatId": "={{ $workflow.id }}",
+    "text": "={{ (\"\" + $json.nom + \" \" + $json.email).slice(0, 4000) }}",
+    "additionalFields": {}
+   },
+   "type": "n8n-nodes-base.telegram",
+   "typeVersion": 1.2,
+   "position": [
+    480,
+    0
+   ],
+   "id": "5d0f8bd3-4de6-49de-9acc-619958a2034f",
+   "name": "Send a text message",
+   "webhookId": "20f467ae-4595-42aa-9f6d-494e033c9d0e",
+   "credentials": {
+    "telegramApi": {
+     "id": "zI1PPY85HcSoOz5B",
+     "name": "Telegram account"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Webhook": {
+   "main": [
+    [
+     {
+      "node": "Edit Fields",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Edit Fields": {
+   "main": [
+    [
+     {
+      "node": "Send a text message",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "binaryMode": "separate",
+  "availableInMCP": true
+ },
+ "meta": {
+  "exported": "2026-11-13",
+  "note": "cap Telegram 4000 car. (UTF-16) applique le 13/11 — secrets redactes a l'export"
+ }
+}

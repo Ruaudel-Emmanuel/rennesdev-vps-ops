@@ -1,0 +1,93 @@
+{
+ "name": "Tally — alerte message Telegram",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "tally-alerte",
+    "options": {}
+   },
+   "id": "1b084474-9b02-46cc-b626-c14fbd978d58",
+   "name": "Tally — réception message",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "26738da8-0be3-4742-a520-7ce87cb58839"
+  },
+  {
+   "parameters": {
+    "jsCode": "<REDACTED_SECRET>"
+   },
+   "id": "00ff3281-65a6-4b38-b39f-528ae1e8b59c",
+   "name": "Formate l'alerte Tally",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    224,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "chatId": "8634051625",
+    "text": "={{ (\"\" + ($json.text)).slice(0, 4000) }}",
+    "additionalFields": {
+     "appendAttribution": false
+    }
+   },
+   "id": "c2a88d68-b06f-432d-9b86-e8e24c6fb6a2",
+   "name": "Telegram — alerte Tally",
+   "type": "n8n-nodes-base.telegram",
+   "typeVersion": 1.2,
+   "position": [
+    448,
+    0
+   ],
+   "webhookId": "0b68f3d4-e9e0-410e-a178-c21f60dcb610",
+   "credentials": {
+    "telegramApi": {
+     "id": "zI1PPY85HcSoOz5B",
+     "name": "Telegram account"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Tally — réception message": {
+   "main": [
+    [
+     {
+      "node": "Formate l'alerte Tally",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Formate l'alerte Tally": {
+   "main": [
+    [
+     {
+      "node": "Telegram — alerte Tally",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "binaryMode": "separate",
+  "availableInMCP": true,
+  "timeSavedMode": "fixed",
+  "callerPolicy": "workflowsFromSameOwner"
+ },
+ "meta": {
+  "exported": "2026-11-13",
+  "note": "cap Telegram 4000 car. (UTF-16) applique le 13/11 — secrets redactes a l'export"
+ }
+}
