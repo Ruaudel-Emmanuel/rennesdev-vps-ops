@@ -57,6 +57,9 @@ if [ ${#ALERTS[@]} -eq 0 ]; then
     rm -f "$STATE_DIR"/last-alert-* 2>/dev/null
     echo "✅ Watchdog VPS : Tout est normal le $(date -Iseconds)."
     echo "- Disque : ${USAGE}% utilisé"
+    /usr/local/bin/vps-issue.sh close-prefix "Watchdog VPS :" \
+        "Anomalie résolue — watchdog vert le $(date -Iseconds). (clôture automatique)" \
+        >/dev/null 2>&1 || true
     echo "- RAM : ${MEM}% utilisée"
     echo "- Conteneurs Docker : Tous en cours d'exécution"
     echo "- HTTPS : Tous les sites accessibles"
