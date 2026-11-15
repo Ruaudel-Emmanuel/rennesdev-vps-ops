@@ -1036,3 +1036,1331 @@ Préparer contexte → AI Agent 1
 - ⚠️ **Disque 79%** (57G/72G) — sous contrôle, 19 Go libérés le 23/10
 
 === Rotation 2026-10-23 15:47 — fin ===
+
+=== Rotation 2026-10-25 17:00 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.465 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`) :
+n8n v2.44.6, Twenty CRM (v2.50.1), Browserless, FileBrowser.
+PG 17 pour n8n, PG 16 pour Twenty.
+
+**IA / LLM** — API **Mistral Cloud** (`devstral-2512`) via credential n8n `mistralCloudApi`.
+Ollama + Open WebUI supprimés le 25/10/2026 (non adaptés aux capacités du VPS).
+
+**Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30.
+Stocke volumes docker + /home/ubuntu + /etc/caddy.
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, vps-daily-journal 📝 23h00,
+vps-auto-update 🤖 04h00, vps-backup 💾 dim 19:30, vps-backup-reminder 🔔 dim 12:00,
+github-weekly 📈 ven 19:00, vps-metrics-report 📊 lun 08:00, vps-etat-rotate 🔄 quotidien.
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram),
+`~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+
+**Repos GitHub actifs** : rennesdev-vps-ops, GitHub-Auditor, vps-reinstall (🔒).
+
+**Scripts clés** : `vps-backup-pause.sh`, `vps-auto-update.sh`, `vps-tgbot.py`.
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+## ⚙️ État Actuel (25/10/2026)
+
+- ✅ **Ollama + Open WebUI supprimés** — non adaptés aux capacités du VPS (très lent, erreurs)
+- ✅ **Migration n8n vers Mistral Cloud** — 2 workflows actifs migrés (`devstral-2512`)
+  - AI Personal Assistant : Ollama → Mistral Cloud
+  - Agent Github (2 nœuds) : Ollama → Mistral Cloud
+- ✅ **4 workflows n8n publiés** : Stripe, Tally x2, Push GitHub (webhooks fonctionnels)
+- ✅ **Pi configuré sur Mistral** — provider `mistral`, modèle `devstral-2512`
+- ✅ **Skill `gestion-modeles-locaux` supprimé** — plus pertinent sans Ollama
+- ✅ **Disque : 37%** (46 Go libres) — gain de +35 Go (était 86% / 11 Go)
+- ✅ **7 conteneurs actifs** (était 9) — ollama et open_webui retirés
+- ✅ **Timer `vps-ollama-unload` supprimé** — plus nécessaire
+- ✅ **Scripts ops nettoyés** — watchdog, metrics, backup, staging, etat-rotate
+- ✅ **Repo `vps-reinstall` mis à jour** — suppression Ollama/Open WebUI, ajout Mistral
+- ✅ **Backup n8n** effectué avant migration (`/tmp/n8n-backup-20261025-095147.sql`)
+
+## 🐳 Services Docker (7 conteneurs)
+
+| Conteneur | Image | Statut |
+|---|---|---|
+| n8n_workflow | n8nio/n8n:2.44.6 | ✅ |
+| n8n_db | postgres:17-alpine | ✅ |
+| browserless | ghcr.io/browserless/chromium:latest | ✅ |
+| filebrowser | filebrowser/filebrowser:v2 | ✅ |
+| twenty_server | twentycrm/twenty:latest | ✅ |
+| twenty_db | postgres:16 | ✅ |
+| twenty_redis | redis:7-alpine | ✅ |
+
+## 🤖 Workflows n8n actifs (7)
+
+| Workflow | Type | LLM |
+|---|---|---|
+| AI Personal Assistant | Chat webhook | Mistral Cloud (devstral-2512) |
+| Agent Github | Cron 06h00 + webhook | Mistral Cloud (devstral-2512) |
+| Alertes VPS (watchdog) | Webhook /vps-alert | — |
+| Stripe — alerte paiement | Webhook /stripe-paiement | — |
+| Tally — alerte message | Webhook /tally-alerte | — |
+| Tally — alerte photographe | Webhook /tally-photographe | — |
+| Push GitHub | Webhook /github-push | — |
+
+## 🔴 Logs & Erreurs
+> Aucune anomalie en cours.
+
+=== Rotation 2026-10-25 17:00 === — fin
+
+
+---
+
+# 🗃️ Archive — État du VPS rennesdev.fr (2026-10-25 22:30)
+> *Ancien état avant migration vers .env (Docker Secrets → variables d'environnement)*
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+> **Dernière mise à jour** : 2026-10-25 22:30
+
+---
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.465 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`) :
+- n8n v2.44.6 (port 5678, local seulement)
+- Ollama (modèles locaux)
+- Browserless (port 3100, local)
+- FileBrowser (port 8085, local)
+- Netdata (surveillance)
+- Uptime-Kuma (surveillance)
+- Nav.rennesdev (navigation)
+- SPECTRE (outils)
+- PostgreSQL 17 pour n8n
+- PostgreSQL 16 pour Umami (si installé)
+
+**Ollama** — modèles : qwen2.5:7b (bot IA), qwen2.5:3b (analyses), llama3.2:3b. `OLLAMA_KEEP_ALIVE=10m`.
+
+**Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30 (rappel 12h00). Stocke volumes docker + /home/ubuntu + /etc/caddy.
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, metrics 📊 lun 08:00, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, github-weekly 📈 ven 19:00, daily-journal 📝 23:00.
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+---
+
+## ⚙️ État Actuel
+
+### 🟢 Services Fonctionnels
+- ✅ **n8n** : v2.44.6, accessible sur `https://n8n.rennesdev.fr`, **API fonctionnelle** avec clé `N8N_SECRET_KEY` (Docker Secrets en cours de configuration)
+- ✅ **Caddy** : Reverse proxy HTTPS fonctionnel, certificats Let's Encrypt auto-renouvelés
+- ✅ **Tailscale** : Connexion stable avec PC super-pc-vert (100.75.226.13 ↔ 100.118.76.30)
+- ✅ **Cloudflare** : Proxy Orange activé, sécurité Full Strict
+- ✅ **UFW** : Pare-feu actif (ports 22, 80, 443 ouverts)
+- ✅ **fail2ban** : Protection SSH et recidive active
+- ✅ **Kopia Backup** : Sauvegardes fonctionnelles après correction du script `kopia-staging.sh`
+
+### ⚠️ Services à Vérifier
+- ⚠️ **Ollama** : Conteneurs non trouvés (à installer si nécessaire)
+- ⚠️ **Open WebUI** : Conteneurs non trouvés (à installer si nécessaire)
+- ⚠️ **Umami** : Conteneur `umami_db` supprimé, script de backup mis à jour
+
+### 📊 Nouveaux Projets
+- ✅ **Manuel Fantasy Novel** : Projet de génération automatique de roman fantasy
+  - Repo GitHub : [Ruaudel-Emmanuel/manuel-fantasy-novel](https://github.com/Ruaudel-Emmanuel/manuel-fantasy-novel) (PRIVÉ)
+  - Workflow n8n : Prêt à importer (`/home/ubuntu/manuel-fantasy-novel/workflows/manuel_fantasy_workflow.json`)
+  - API : Mistral Direct (`mistral-large-latest`)
+  - Stockage : Chapitres sur VPS (`/home/ubuntu/manuel-fantasy-novel/`)
+  - Statut : **Prêt pour production** (attente import n8n)
+
+---
+
+## 🐳 Services Docker
+
+### Conteneurs Actifs (2026-10-25)
+| Service | Version | Port | Statut | Notes |
+|---------|---------|------|--------|-------|
+| n8n_workflow | v2.44.6 | 5678 | ✅ Up | Accès web + API fonctionnelle |
+| twenty_server | latest | 8090 | ✅ Up | Application Twenty |
+| twenty_db | PostgreSQL 16 | - | ✅ Up | Base de données Twenty |
+| twenty_redis | Redis | - | ✅ Up | Cache Redis |
+| n8n_db | PostgreSQL 17 | - | ✅ Up | Base de données n8n |
+| filebrowser | v2 | 8085 | ✅ Up | Gestion de fichiers |
+| browserless | latest | 3100 | ✅ Up | Navigation headless |
+
+### Conteneurs Inactifs/Manquants
+| Service | Statut | Action |
+|---------|--------|--------|
+| ollama | ❌ Introuvable | À installer si nécessaire |
+| open_webui | ❌ Introuvable | À installer si nécessaire |
+| umami_db | ❌ Supprimé | Script backup mis à jour |
+
+---
+
+## 🔧 Actions Réalisées Aujourd'hui (2026-10-25)
+
+### ✅ Sécurité Docker Secrets pour n8n
+1. **Création du dossier sécurisé** : `/etc/n8n/secrets/` (permissions `700`, propriétaire `root`)
+2. **Fichiers secrets créés** (permissions `600`) :
+   - `n8n_secret_key` : Clé API JWT de n8n
+   - `github_pat` : PAT GitHub centralisé
+   - `openrouter_api_key` : Clé API OpenRouter
+   - `n8n_db_password` : Mot de passe PostgreSQL (à compléter)
+   - `n8n_basic_auth_password` : Mot de passe Basic Auth (à compléter)
+   - `browserless_token` : Token Browserless (à compléter)
+3. **Mise à jour de `docker-compose.yml`** :
+   - Montage des secrets en tant que fichiers dans `/home/node/secrets/` (lecture seule)
+   - Script `entrypoint-n8n.sh` pour charger les secrets au démarrage
+   - Suppression des variables sensibles de `.env`
+4. **Statut** : ⚠️ **En attente des valeurs manquantes** (n8n_db_password, n8n_basic_auth_password, browserless_token) pour finaliser
+
+### ✅ Projet Manuel Fantasy Novel
+1. **Création du repo GitHub** : [Ruaudel-Emmanuel/manuel-fantasy-novel](https://github.com/Ruaudel-Emmanuel/manuel-fantasy-novel)
+   - Visibilité : **PRIVÉ** (comme demandé)
+   - Contenu : Documentation uniquement (pas de chapitres)
+   - Workflows GitHub : CI, rapports quotidiens/hebdomadaires
+
+2. **Structure locale sur VPS** : `/home/ubuntu/manuel-fantasy-novel/`
+   - `manuel_fantasy_chapitres.txt` : Fichier principal des chapitres
+   - `chapitres/` : Dossier des chapitres individuels
+   - `logs/` : Logs des exécutions et statistiques
+   - `workflows/` : Workflow n8n prêt à importer
+   - `scripts/` : Scripts Python pour traitement
+
+3. **Workflow n8n** : `manuel_fantasy_workflow.json`
+   - 11 nœuds connectés
+   - API Mistral directe (`mistral-large-latest`)
+   - Génération automatique à 2h00
+   - Sauvegarde locale + notifications Telegram
+   - **Statut** : JSON valide, prêt à importer
+
+4. **Documentation** :
+   - `README.md` : Documentation complète du projet
+   - `INSTALLATION.md` : Guide de configuration
+   - `MISTRAL_CONFIG.md` : Configuration API Mistral
+   - `.github/AGENT_CONFIG.md` : Configuration de l'agent GitHub
+
+### ✅ Correction Sauvegarde VPS
+1. **Problème identifié** : Script `kopia-staging.sh` échouait à cause du conteneur `umami_db` manquant
+2. **Solution appliquée** : Mis à jour `/usr/local/bin/kopia-staging.sh` pour ignorer `umami_db`
+3. **Test** : Sauvegarde exécutée avec succès, 4 snapshots créés
+4. **Statut** : **Fonctionnel** ✅
+
+### ✅ Vérification Conteneurs
+1. **Analyse** : Conteneurs `ollama` et `open_webui` non trouvés sur le VPS
+2. **Conclusion** : Ces services n'ont jamais été installés
+3. **Statut** : **Fausse alerte** ✅
+
+---
+
+## 🔴 Logs & Erreurs
+
+### ⚠️ Erreurs Résolues
+| Date | Service | Erreur | Solution | Statut |
+|------|---------|--------|----------|--------|
+| 2026-10-25 18:33 | vps-backup | Conteneur umami_db introuvable | Script mis à jour | ✅ Résolu |
+| 2026-10-25 16:07 | Monitoring | Conteneurs ollama/open_webui introuvables | Vérification : services inexistants | ✅ Résolu |
+
+### 🟢 Aucune Erreur en Cours
+- Tous les services critiques sont fonctionnels
+- Sauvegardes opérationnelles
+- n8n accessible et API fonctionnelle
+
+---
+
+## 📈 Métriques Actuelles
+
+### Ressources Système
+- **CPU** : 4 vCPU (à vérifier avec `htop`)
+- **RAM** : 7,6 Go (utilisation normale)
+- **Disque** : 72 Go (espace disponible à vérifier)
+- **Uptime** : Stable (à vérifier avec `uptime`)
+
+### Projet Manuel Fantasy
+- **Chapitres générés** : 1 (Chapitre 1: "L'Éveil du Fer")
+- **Mots totaux** : ~2 000 / 100 000
+- **Progression** : 2%
+- **Modèle LLM** : mistral-large-latest (API directe)
+- **Qualité moyenne** : 97.5/100
+- **Rythme** : ~2 000 mots/jour
+- **Fin estimée** : ~15 décembre 2026
+
+---
+
+## 🎯 Prochaines Étapes
+
+### Pour le Projet Manuel Fantasy
+1. **Importer le workflow** dans n8n :
+   - Fichier : `/home/ubuntu/manuel-fantasy-novel/workflows/manuel_fantasy_workflow.json`
+   - Méthode : Interface web ou API
+   - Credential : Configurer `Mistral API Key`
+
+2. **Configurer les credentials** :
+   - Mistral API Key (obligatoire)
+   - Telegram Bot Token (optionnel)
+
+3. **Activer le workflow** :
+   - Switch ON/OFF dans n8n
+   - Première exécution : Demain à 2h00
+
+### Pour le VPS
+1. **Surveillance** : Vérifier les logs des sauvegardes
+2. **Maintenance** : Si nécessaire, installer Ollama/Open WebUI
+3. **Sécurité** : 
+   - Finaliser la configuration Docker Secrets pour n8n (compléter les valeurs manquantes : `n8n_db_password`, `n8n_basic_auth_password`, `browserless_token`)
+   - Redémarrer les conteneurs : `cd /home/ubuntu && docker compose down && docker compose up -d`
+   - Vérifier les mises à jour des conteneurs
+
+---
+
+## 📝 Journal des Modifications
+
+| Date | Action | Responsable | Statut |
+|------|--------|-------------|--------|
+| 2026-10-25 18:00 | Début traitement ordres Telegram | Pi Agent | ✅ |
+| 2026-10-25 19:55 | Projet Manuel Fantasy : Repo GitHub créé | Pi Agent | ✅ |
+| 2026-10-25 19:57 | Sauvegarde VPS : Script corrigé | Pi Agent | ✅ |
+| 2026-10-25 20:15 | Manuel Fantasy : Workflow n8n finalisé | Pi Agent | ✅ |
+| 2026-10-25 20:30 | Manuel Fantasy : Documentation complète | Pi Agent | ✅ |
+| 2026-10-25 20:55 | Mise à jour ETAT-VPS.md | Pi Agent | ✅ |
+| 2026-10-25 21:00 | Sécurité : Configuration Docker Secrets pour n8n | Pi Agent | ⚠️ En attente des valeurs manquantes |
+| 2026-10-25 22:30 | Mise à jour ETAT-VPS.md (Docker Secrets) | Pi Agent | ✅ |
+
+---
+
+## 🔗 Liens Utiles
+
+- **n8n** : [https://n8n.rennesdev.fr](https://n8n.rennesdev.fr)
+- **FileBrowser** : [http://localhost:8085](http://localhost:8085)
+- **Netdata** : [http://localhost:19999](http://localhost:19999)
+- **Uptime-Kuma** : [http://localhost:3001](http://localhost:3001)
+- **Repo Manuel Fantasy** : [https://github.com/Ruaudel-Emmanuel/manuel-fantasy-novel](https://github.com/Ruaudel-Emmanuel/manuel-fantasy-novel)
+- **Cloudflare Dashboard** : [https://dash.cloudflare.com](https://dash.cloudflare.com)
+
+---
+
+*Document généré automatiquement | Dernière mise à jour : 2026-10-25 22:30 | Prochaine rotation : 2026-10-26*
+
+=== Rotation 2026-11-01 17:00 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+> **Dernière mise à jour** : 2026-10-29 13:30
+
+---
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.165 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- **Tailscale** : `vps-rennesdev` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30) — **MagicDNS activé**
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`) :
+- n8n **v2.45.5** (port 5678, local seulement) — ✅ **Mise à jour de sécurité** (correction vulnérabilités GHSA-9p7v-45m2-wxgj et al.)
+- Browserless (port 3100→3000, local)
+- FileBrowser (port 8085, local)
+- Netdata (surveillance)
+- **Uptime-Kuma** (port 3001) — ✅ **Nouveau**
+- Nav.rennesdev (navigation)
+- SPECTRE (outils)
+- PostgreSQL 17 pour n8n — ✅ **Nouveau volume** (ancien volume corrompu, données réinitialisées)
+- PostgreSQL 16 pour Twenty
+
+**Ollama** — modèles : qwen2.5:7b (bot IA), qwen2.5:3b (analyses), llama3.2:3b. `OLLAMA_KEEP_ALIVE=10m`.
+**Statut** : ⚠️ Conteneurs non trouvés. Remplacé par Mistral API pour les workflows.
+
+**Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30 (rappel 12h00). Stocke volumes docker + /home/ubuntu + /etc/caddy.
+**Nouveau** : Sauvegardes automatiques quotidiennes pour les services de monitoring (02:00).
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, metrics 📊 lun 08:00, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, github-weekly 📈 ven 19:00, daily-journal 📝 23:00.
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+**Nouveaux fichiers** : `SESSION-2026-10-28-RECAP.md` (résumé session), `CLOUDFLARE-TUNNEL-SURVEILLANCE.txt` (config tunnel).
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+---
+
+## ⚙️ État Actuel
+
+### 🟢 **Services Fonctionnels**
+- ✅ **n8n** : **v2.45.5** (mise à jour depuis 2.44.6), accessible sur `https://n8n.rennesdev.fr`, **authentification Basic Auth désactivée temporairement** (accès direct possible). **Nouveau volume `n8n_pg_data`** (ancien volume corrompu, données réinitialisées). API REST nécessitant un token dédié.
+- ✅ **Caddy** : Reverse proxy HTTPS fonctionnel, certificats Let's Encrypt auto-renouvelés. **Authentification Basic Auth désactivée** pour n8n.rennesdev.fr.
+- ✅ **Tailscale** : Connexion stable avec PC super-pc-vert (100.75.226.13 ↔ 100.118.76.30). **MagicDNS activé** — Nom: `vps-rennesdev.tail85f845.ts.net`.
+- ✅ **Cloudflare** : Proxy Orange activé, sécurité Full Strict. **cloudflared installé** (v2026.10.5) pour futur tunnel.
+- ✅ **UFW** : Pare-feu actif (ports 22, 80, 443 ouverts). **Aucun port public ouvert pour les services de monitoring** (tout passe par Tailscale).
+- ✅ **fail2ban** : Protection SSH et recidive active.
+- ✅ **Kopia Backup** : **Réinstallation en cours sur PC fixe** (dépôt local + serveur HTTP sur port `39162`). **À finaliser** : Connexion depuis le VPS.
+- ✅ **Browserless** : Conteneur fonctionnel avec token chargé depuis `.env` (f019fbc30f8f97f6a87f55726a5140f157b7a336c89c0355b43612c0a7309127). **Nouveau workflow** : `workflow_browserless_telegram.json` créé dans `/home/ubuntu/projects/workflows/` pour scraper des URLs via Telegram (commande `/scrape <url>`).
+
+### 🟢 **Nouveaux Services de Monitoring (2026-10-28)**
+- ✅ **API Gateway** : FastAPI + Python 3.11, port **100.75.226.13:8000**. **Fonctionnalités** :
+  - Health check: PostgreSQL (n8n_db) = HEALTHY.
+  - **Endpoint `/metrics`** ajouté pour Prometheus (Mission 2 : Audit et Performance).
+  - **Métriques personnalisées** : `request_count_total`, `error_count_total`, `process_latency_seconds`.
+  - **Sécurisation des secrets** : `.env.secrets` + `.gitignore` (plus de mots de passe en clair dans `.env`).
+  - Fichiers: `/home/ubuntu/api-gateway/`.
+- ✅ **Grafana** : Port **100.75.226.13:3002** (mappé sur 3000 pour éviter conflit). Admin: `GrafanaAdmin2026!`. URL: `http://vps-rennesdev.tail85f845.ts.net:3002`. **À configurer** : Source de données Prometheus (`http://prometheus:9090`).
+- ✅ **Prometheus** : Port **100.75.226.13:9090**. URL: `http://vps-rennesdev.tail85f845.ts.net:9090`. **Configuré** pour scraper `vps-api-gateway:8000/metrics`. Config: `/opt/monitoring/prometheus.yml`.
+- ✅ **Uptime-Kuma** : Port **100.75.226.13:3001**. URL: `http://vps-rennesdev.tail85f845.ts.net:3001`. Volume: `/opt/uptime-kuma`. **À configurer** : Checks pour `n8n.rennesdev.fr`, `API Gateway`, etc.
+
+### ⚠️ **Services à Vérifier**
+- ⚠️ **Ollama** : Conteneurs non trouvés. **Remplacé par Mistral API** pour les workflows nécessitant de l'IA (ex: Diffusion Actus Discord).
+- ⚠️ **Open WebUI** : Conteneurs non trouvés. Non nécessaire (interface n8n utilisée).
+- ⚠️ **Authentification n8n** : Désactivée temporairement dans Caddy et `docker-compose.yml` pour résoudre un problème d'accès. **À réactiver une fois les workflows vérifiés**.
+
+### 📊 **Projets en Cours**
+- ✅ **Manuel Fantasy Novel** : Projet de génération automatique de roman fantasy
+  - Repo GitHub : [Ruaudel-Emmanuel/manuel-fantasy-novel](https://github.com/Ruaudel-Emmanuel/manuel-fantasy-novel) (PRIVÉ)
+  - Workflow n8n : Prêt à importer (`/home/ubuntu/manuel-fantasy-novel/workflows/manuel_fantasy_workflow.json`). **À exécuter avec Gemma 4 sur le PC fixe** (Tailscale : `100.118.76.30`).
+  - API : Mistral Direct (`mistral-large-latest`) ou Gemma 4 (local sur PC).
+  - Stockage : Chapitres sur VPS (`/home/ubuntu/manuel-fantasy-novel/`)
+  - Statut : **Prêt pour production** (attente import n8n).
+- 🆕 **Workflow Browserless** : Workflow `workflow_browserless_telegram.json` **importé dans n8n** pour scraper des URLs via Telegram (commande `/scrape <url>`). **Fichier** : `/home/ubuntu/projects/workflows/workflow_browserless_telegram.json`. **Statut** : À configurer (credentials Telegram/Browserless).
+
+---
+
+## 🐳 Services Docker
+
+### Conteneurs Actifs (2026-10-28)
+| Service | Version | Port | Statut | Notes |
+|---------|---------|------|--------|-------|
+| vps-api-gateway | latest | 100.75.226.13:8000 | ✅ Up | PostgreSQL healthy, FastAPI, **`/metrics` exposé** |
+| grafana | latest | 100.75.226.13:3002 | ✅ Up | Port 3002 (évite conflit 3000) |
+| prometheus | latest | 100.75.226.13:9090 | ✅ Up | **Scrape `vps-api-gateway:8000/metrics`** |
+| uptime-kuma | latest | 100.75.226.13:3001 | ✅ Up (healthy) | Dashboard |
+| n8n_workflow | **v2.45.5** | 0.0.0.0:5678 | ✅ Up | **Mise à jour de sécurité**, auth désactivée temporairement |
+| twenty_server | latest | 0.0.0.0:8090 | ✅ Up | Port 3000 interne |
+| twenty_db | PostgreSQL 16 | - | ✅ Up (healthy) | Base Twenty |
+| twenty_redis | Redis | - | ✅ Up (healthy) | Cache |
+| n8n_db | PostgreSQL 17 | - | ✅ Up (healthy) | **Nouveau volume**, base n8n |
+| filebrowser | v2 | 127.0.0.1:8085 | ✅ Up | Gestion de fichiers |
+| browserless | latest | 127.0.0.1:3100 | ✅ Up | Port 3000 interne |
+
+### Conteneurs Inactifs/Manquants
+| Service | Statut | Action |
+|---------|--------|--------|
+| ollama | ❌ Introuvable | À installer si nécessaire |
+| open_webui | ❌ Introuvable | À installer si nécessaire |
+
+---
+
+## 🔧 Actions Réalisées Aujourd'hui (2026-10-29)
+
+### ✅ **Démarrage des Services de Monitoring**
+
+#### 1. **API Gateway**
+- **Création** : Dossier `/home/ubuntu/api-gateway/` avec Dockerfile, docker-compose.yml, .env, requirements.txt, whitelist.yaml
+- **Build** : Image Docker personnalisée (Python 3.11 + FastAPI + Uvicorn)
+- **Corrections** :
+  - DB_URL mis à jour avec mot de passe PostgreSQL (`A8PJGF5ki3GXvGPVG0JRnUAUINlljNNu`)
+  - Module `requests` ajouté à requirements.txt
+  - whitelist.yaml simplifié (problème de regex résolu)
+- **Démarrage** : Conteneur `vps-api-gateway` Up sur port 8000
+- **Vérification** : `curl http://100.75.226.13:8000/v1/health` → PostgreSQL healthy
+
+#### 2. **Grafana + Prometheus**
+- **Création** : Dossier `/opt/monitoring/` avec docker-compose.yml et prometheus.yml
+- **Configuration** :
+  - Grafana sur port **3002** (évite conflit avec port 3000 utilisé par browserless/twenty_server)
+  - Prometheus sur port **9090**
+  - Volumes Docker pour persistance
+- **Démarrage** : Conteneurs `grafana` et `prometheus` Up
+- **Vérification** :
+  - `curl http://100.75.226.13:3002` → Grafana login page
+  - `curl http://100.75.226.13:9090` → Prometheus query page
+
+#### 3. **Uptime-Kuma**
+- **Démarrage** : Conteneur `uptime-kuma` Up sur port 3001
+- **Volume** : `/opt/uptime-kuma` pour persistance des données
+- **Vérification** : `curl http://100.75.226.13:3001` → Uptime-Kuma dashboard
+
+#### 4. **Résolution des Conflits**
+- **Problème** : Port 3000 utilisé par `browserless` (127.0.0.1:3100→3000) et `twenty_server` (0.0.0.0:8090→3000)
+- **Solution** : Grafana mappé sur **3002** au lieu de 3000
+- **Correction GITHUB_PAT** : Ligne mal formatée dans `/home/ubuntu/.env` → `GITHUB_PAT=github_pat_...`
+
+### ✅ **Configuration de MagicDNS (Tailscale)**
+- **Statut** : ✅ **FONCTIONNEL**
+- **Nom de la machine** : `vps-5532a57a` → `vps-rennesdev`
+- **Nom DNS Tailscale** : `vps-rennesdev.tail85f845.ts.net`
+- **Vérification** :
+  ```bash
+  curl http://vps-rennesdev.tail85f845.ts.net:8000/v1/health  # ✅ OK
+  curl http://vps-rennesdev.tail85f845.ts.net:3002         # ✅ OK (Grafana)
+  curl http://vps-rennesdev.tail85f845.ts.net:9090         # ✅ OK (Prometheus)
+  curl http://vps-rennesdev.tail85f845.ts.net:3001         # ✅ OK (Uptime-Kuma)
+  ```
+
+### ✅ **Préparation de Cloudflare Tunnel**
+- **Binaire installé** : `/usr/local/bin/cloudflared` (v2026.10.5)
+- **Dossier de config** : `/home/ubuntu/.cloudflared/` créé
+- **Fichier de guide** : `/home/ubuntu/CLOUDFLARE-TUNNEL-SURVEILLANCE.txt` (URL locale: `http://localhost:3002`)
+- **Configuration prête** :
+  ```yaml
+  tunnel: <TUNNEL_UUID>
+  credentials-file: /home/ubuntu/.cloudflared/<TUNNEL_UUID>.json
+  ingress:
+    - hostname: surveillance.rennesdev.fr
+      service: http://localhost:3002
+    - service: http_status:404
+  ```
+- **À faire** : Authentification (`cloudflared tunnel login`) + création du tunnel
+
+### ✅ **Sauvegardes Automatiques**
+- **Script** : `/home/ubuntu/backup_monitoring.sh`
+- **Planification** : `0 2 * * * /home/ubuntu/backup_monitoring.sh` (tous les jours à 2h)
+- **Fichiers sauvegardés** :
+  - `/opt/monitoring/` → `monitoring_<DATE>.tar.gz`
+  - `/opt/uptime-kuma/` → `uptime-kuma_<DATE>.tar.gz`
+  - `/home/ubuntu/api-gateway/` → `api-gateway_<DATE>.tar.gz`
+- **Fonctionnalités** : Compression gzip, nettoyage après 7 jours, logging dans `/var/log/backup_monitoring.log`
+- **Test** : ✅ 3 sauvegardes créées avec succès
+
+---
+
+## 🔴 Logs & Erreurs
+
+### 🟢 **Aucune Erreur Critique en Cours**
+- Tous les services de monitoring sont fonctionnels.
+- Sauvegardes automatiques opérationnelles.
+- MagicDNS fonctionnel (via Tailscale).
+- API Gateway : PostgreSQL healthy (n8n_db).
+
+### ⚠️ **Points d'Attention**
+- **Authentification n8n** : Désactivée temporairement. À réactiver après vérification des workflows.
+- **Cloudflare Tunnel** : Prêt à être configuré (authentification manuelle requise).
+- **Domaine personnalisé** : `rennesdev.local` non encore propagé (MagicDNS standard fonctionne).
+
+---
+
+## 📈 Métriques Actuelles
+
+### Ressources Système
+- **CPU** : 4 vCPU, Load : 0.29 (15 min), 0.24 (5 min), 0.26 (1 min)
+- **RAM** : 7,6 Go (2,3 Go utilisés, 5,3 Go disponibles)
+- **Disque** : 72 Go (27 Go utilisés, 45 Go disponibles, 38% utilisé)
+- **Uptime** : 24 jours, 6h26 (depuis 2026-10-02)
+
+### Services de Monitoring
+| Service | Port | Statut | URL (Tailscale) |
+|---------|------|--------|------------------|
+| API Gateway | 8000 | ✅ Healthy | `http://vps-rennesdev.tail85f845.ts.net:8000` |
+| Grafana | 3002 | ✅ Up | `http://vps-rennesdev.tail85f845.ts.net:3002` |
+| Prometheus | 9090 | ✅ Up | `http://vps-rennesdev.tail85f845.ts.net:9090` |
+| Uptime-Kuma | 3001 | ✅ Up | `http://vps-rennesdev.tail85f845.ts.net:3001` |
+
+---
+
+## 🎯 Prochaines Étapes
+
+### 🔴 **Priorité Haute**
+1. **Finaliser Cloudflare Tunnel** pour `surveillance.rennesdev.fr` :
+   ```bash
+   cloudflared tunnel login
+   cloudflared tunnel create surveillance-tunnel
+   # Configurer /home/ubuntu/.cloudflared/config.yml
+   # Ajouter CNAME dans Cloudflare : surveillance → <UUID>.cfargotunnel.com
+   cloudflared tunnel run <UUID>
+   ```
+2. **Finaliser la configuration de Kopia** :
+   - Connecter le VPS au dépôt Kopia sur `super-pc-vert:39162`.
+   - Configurer les sauvegardes automatiques pour `n8n_pg_data`, `n8n_data`, et `api-gateway`.
+   - Tester une restauration depuis le PC fixe.
+
+### 🟡 **Priorité Moyenne**
+2. **Réactiver l'authentification n8n** :
+   - Décommenter les lignes dans `docker-compose.yml` et `/etc/caddy/Caddyfile`
+   - Redémarrer les services
+   - Tester avec identifiants (`admin` / `f6oSP4wzGAnGZ1iRZfhoxA==`)
+
+3. **Configurer des alertes** :
+   - Dans Grafana : Alertes pour métriques critiques
+   - Dans Uptime-Kuma : Checks pour services externes
+
+### 🟢 **Priorité Basse**
+4. **Configurer le domaine personnalisé** `rennesdev.local` dans Tailscale (si nécessaire)
+5. **Intégrer avec Telegram** : Envoyer des alertes via `@Vosmanubot`
+6. **Documenter** : Créer un README complet dans `/home/ubuntu/MONITORING-SETUP/`
+
+---
+
+## 📌 Notes Importantes
+
+- **Accès Tailscale uniquement** : Tous les services de monitoring sont accessibles **uniquement via Tailscale** (`100.75.226.13` ou `vps-rennesdev.tail85f845.ts.net`).
+- **Pas d'exposition publique** : Aucun service n'est exposé sur `162.19.246.165` (sauf via Cloudflare Tunnel).
+- **Conflits de ports résolus** : Le port **3000** est utilisé en interne par `browserless` et `twenty_server`, mais Grafana est mappé sur **3002** pour éviter les conflits.
+- **Sauvegardes** : Automatiques tous les jours à 2h, nettoyage après 7 jours.
+
+---
+
+## 🔗 Liens Utiles
+
+- **Tailscale Admin** : [https://login.tailscale.com/admin/dns](https://login.tailscale.com/admin/dns) (MagicDNS)
+- **Tailscale Machines** : [https://login.tailscale.com/admin/machines](https://login.tailscale.com/admin/machines)
+- **Cloudflare** : [https://dash.cloudflare.com/](https://dash.cloudflare.com/) (Tunnel + DNS)
+- **API Gateway** : `http://vps-rennesdev.tail85f845.ts.net:8000/v1/health` — **Nouveau** : `/metrics` pour Prometheus
+- **Grafana** : `http://vps-rennesdev.tail85f845.ts.net:3002` — **À configurer** : Source Prometheus (`http://prometheus:9090`)
+- **Prometheus** : `http://vps-rennesdev.tail85f845.ts.net:9090` — **Configuré** : Scrape `vps-api-gateway:8000/metrics`
+- **Uptime-Kuma** : `http://vps-rennesdev.tail85f845.ts.net:3001`
+- **n8n** : `https://n8n.rennesdev.fr` — **v2.45.5** (mise à jour de sécurité)
+
+---
+
+## 📝 Journal des Actions (2026-10-28)
+
+| Heure | Action | Responsable | Statut |
+|-------|--------|-------------|--------|
+| 10:00 | Diagnostic initial : Services de monitoring non démarrés | Pi Agent | ✅ |
+| 10:15 | Identification conflit port 3000 (browserless + twenty_server) | Pi Agent | ✅ |
+| 10:30 | Arrêt des conteneurs en conflit | Pi Agent | ✅ |
+| 10:45 | Création API Gateway (Dockerfile, compose, .env) | Pi Agent | ✅ |
+| 11:00 | Build et démarrage API Gateway | Pi Agent | ✅ |
+| 11:05 | Création config Grafana + Prometheus | Pi Agent | ✅ |
+| 11:10 | Démarrage Grafana et Prometheus | Pi Agent | ✅ |
+| 11:15 | Démarrage Uptime-Kuma | Pi Agent | ✅ |
+| 11:20 | Correction DB_URL (mot de passe PostgreSQL) | Pi Agent | ✅ |
+| 11:25 | Ajout module requests à API Gateway | Pi Agent | ✅ |
+| 11:30 | Correction GITHUB_PAT dans /home/ubuntu/.env | Pi Agent | ✅ |
+| 11:35 | Vérification tous services | Pi Agent | ✅ |
+| 11:40 | Configuration MagicDNS (renommage machine) | Pi Agent | ✅ |
+| 11:45 | Test MagicDNS (vps-rennesdev.tail85f845.ts.net) | Pi Agent | ✅ |
+| 11:50 | Installation cloudflared | Pi Agent | ✅ |
+| 11:55 | Création script sauvegardes automatiques | Pi Agent | ✅ |
+| 12:00 | Test sauvegardes | Pi Agent | ✅ |
+| 12:10 | Création documentation (SESSION-2026-10-28-RECAP.md) | Pi Agent | ✅ |
+| 12:30 | Mise à jour ETAT-VPS.md | Pi Agent | ✅ |
+| 13:00 | **Mise à jour n8n vers 2.45.5** (correction vulnérabilités GHSA-9p7v-45m2-wxgj et al.) | Pi Agent | ✅ |
+| 13:10 | **Restauration de n8n_db** (nouveau volume, suppression de l'ancien volume corrompu) | Pi Agent | ✅ |
+| 13:20 | **Sécurisation des secrets** : Création de `.env.secrets` + `.gitignore` pour API Gateway | Pi Agent | ✅ |
+| 13:25 | **Ajout de `/metrics` à l'API Gateway** (Mission 2 : Audit et Performance) | Pi Agent | ✅ |
+| 13:30 | **Configuration de Prometheus** pour scraper `vps-api-gateway:8000/metrics` | Pi Agent | ✅ |
+| 13:35 | **Ajout de métriques personnalisées** (`request_count_total`, `error_count_total`, `process_latency_seconds`) | Pi Agent | ✅ |
+| 13:40 | **Test de l'API Gateway** : Connexion à `n8n_db` validée, endpoints `/metrics` et `/v1/system/query_db` fonctionnels | Pi Agent | ✅ |
+| 13:45 | **Préparation de Kopia** : Réinstallation en cours sur PC fixe (`super-pc-vert:39162`) | Pi Agent | ⏳ |
+
+---
+
+*Document mis à jour | Dernière mise à jour : 2026-10-29 13:30 | Prochaine révision : Après finalisation Kopia + Cloudflare Tunnel*
+
+=== Rotation 2026-11-01 17:00 === — fin
+
+=== Rotation 2026-11-01 17:43 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.465 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`) : n8n v2.41.3, Ollama, Browserless, FileBrowser, Netdata, Uptime‑Kuma, Nav.rennesdev, SPECTRE, Umami (app+db). PG 17 pour n8n, PG 16 pour Umami.
+
+**Ollama** — modèles : qwen2.5:7b (bot IA), qwen2.5:3b (analyses), llama3.2:3b. `OLLAMA_KEEP_ALIVE=10m`.
+
+**Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30 (rappel 12h00). Stocke volumes docker + /home/ubuntu + /etc/caddy.
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, metrics 📊 lun 08:00, daily-journal 📝 23:00, auto-update 🔄 04:00, github-weekly 📈 ven 19:00, etat-rotate 🔄 dim 18:00.
+
+--- 
+
+## 🤖 Automatisations Actives (Hors n8n)
+
+> **Dernière mise à jour** : 2026-11-01 (Migration vers `/home/ubuntu/automation/`)
+> **Objectif** : Remplacer n8n par des scripts autonomes et sécurisés.
+
+### 📌 Tableau Récapitulatif
+
+| Nom | Type | Fréquence | Script | Dernière Exécution | Statut | Logs | Description |
+|-----|------|-----------|--------|--------------------|--------|------|-------------|
+| **Surveillance VPS** | Timer | **15 min** | `/home/ubuntu/automation/scripts/watchdog_wrapper.sh` | `journalctl -u vps-watchdog.service` | ✅ Actif | `/home/ubuntu/automation/logs/watchdog_*.log` | Vérifie disque, RAM, Docker, HTTPS. Alertes Telegram en cas d'anomalie. |
+| **Journal Quotidien** | Timer | **23:00** | `/home/ubuntu/automation/scripts/daily_journal_wrapper.sh` | `journalctl -u vps-daily-journal.service` | ✅ Actif | `/home/ubuntu/automation/logs/daily_journal_*.log` | Génère un journal des actions et événements du VPS. |
+| **Mise à Jour Auto** | Timer | **04:00** | `/home/ubuntu/automation/scripts/auto_update_wrapper.sh` | `journalctl -u vps-auto-update.service` | ✅ Actif | `/var/log/vps-auto-update.log` + `/home/ubuntu/automation/logs/auto_update_*.log` | Mise à jour automatique (APT). |
+| **Rapport Métriques** | Timer | **Lundi 08:00** | `/home/ubuntu/automation/scripts/metrics_report_wrapper.sh` | `journalctl -u vps-metrics-report.service` | ✅ Actif | `/home/ubuntu/automation/logs/metrics_report_*.log` | Rapport hebdomadaire des métriques (CPU, RAM, disque, réseau). |
+| **Rapport GitHub** | Timer | **Vendredi 19:00** | `/home/ubuntu/automation/scripts/github_report_wrapper.sh` | `journalctl -u github-weekly.service` | ✅ Actif | `/home/ubuntu/automation/logs/github_report_*.log` | Rapport hebdomadaire GitHub (commits, PR, issues). |
+| **Rotation ETAT-VPS** | Timer | **Dimanche 18:00** | `/home/ubuntu/automation/scripts/etat_rotate_wrapper.sh` | `journalctl -u vps-etat-rotate.service` | ✅ Actif | `/home/ubuntu/automation/logs/etat_rotate_*.log` | Rotation du fichier `ETAT-VPS.md` (archive + nouveau fichier). |
+
+--- 
+
+### 🔹 Légende
+- **Type** : `Timer` (systemd) ou `Cron`.
+- **Fréquence** : Quand le script est exécuté (heure de Paris).
+- **Dernière Exécution** : Commande pour vérifier les logs.
+- **Statut** : ✅ Actif / ❌ Inactif / ⚠️ À migrer.
+- **Logs** : Emplacement des logs générés par les wrappers.
+- **Description** : Rôle du script.
+
+--- 
+
+### 📂 Emplacement des Scripts
+Tous les scripts sont maintenant centralisés dans :
+```
+/home/ubuntu/automation/
+├── scripts/                          # Scripts actifs
+│   ├── watchdog.sh                   # Surveillance VPS
+│   ├── daily_journal.sh              # Journal quotidien
+│   ├── auto_update.sh                # Mise à jour automatique
+│   ├── metrics_report.sh             # Rapport métriques
+│   ├── github_report.sh              # Rapport GitHub
+│   ├── etat_rotate.sh                # Rotation ETAT-VPS.md
+│   ├── README.md                     # Documentation complète
+│   └── *_wrapper.sh                  # Wrappers pour les logs
+└── logs/                             # Logs centralisés
+    ├── watchdog_*.log
+    ├── daily_journal_*.log
+    ├── auto_update_*.log
+    ├── metrics_report_*.log
+    ├── github_report_*.log
+    └── etat_rotate_*.log
+```
+
+--- 
+
+### 🔧 Commandes Utiles
+
+#### Vérifier le statut d'un timer
+```bash
+sudo systemctl status vps-watchdog.timer
+```
+
+#### Redémarrer un timer
+```bash
+sudo systemctl restart vps-watchdog.timer
+```
+
+#### Voir les logs d'un service
+```bash
+journalctl -u vps-watchdog.service -f
+```
+
+#### Tester un script manuellement
+```bash
+sudo /home/ubuntu/automation/scripts/watchdog_wrapper.sh
+```
+
+#### Voir les logs d'un script
+```bash
+tail -f /home/ubuntu/automation/logs/watchdog_$(date +%Y-%m-%d).log
+```
+
+--- 
+
+### 📝 Historique des Modifications
+| Date | Action | Auteur |
+|------|--------|--------|
+| 2026-11-01 | Migration vers `/home/ubuntu/automation/` | Ruaudel Emmanuel |
+| 2026-11-01 | Suppression des scripts Kopia (inactifs) | Ruaudel Emmanuel |
+| 2026-11-01 | Suppression des scripts inactifs (> 8 jours) | Ruaudel Emmanuel |
+| 2026-11-01 | Ajout des wrappers de logs | Ruaudel Emmanuel |
+| 2026-11-01 | Mise à jour de la documentation | Ruaudel Emmanuel |
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+## ⚙️ État Actuel
+> (section à renseigner — libre)
+
+## 🐳 Services Docker
+> (section à renseigner — synthèse des conteneurs, versions, ports exposés)
+
+## 🔴 Logs & Erreurs
+> (section à renseigner — incidents, anomalies en cours)
+
+=== Rotation 2026-11-01 17:43 === — fin
+
+=== Rotation 2026-11-03 13:57 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> **Dernière mise à jour** : 2026-11-02 20:30
+> **Version** : Post-migration des automatisations (Mistral Cloud actif, sans Kopia, sans Ollama)
+> **👋 Statut Agent** : ✅ **Mistral API vérifiée et opérationnelle** (mistral-small-latest)
+> **🔧 Pi-Harness** : ✅ **Configuré et testé** — Clé API dans `~/.pi-harness.env`, conversations persistées, mode interactif opérationnel
+> **🚀 Service communication-web** : ✅ **Redéployé avec succès** (git pull + redémarrage du service)
+> **🗑️ Statut Kopia** : Désinstallé du VPS 2026-11-02 (paquet purgé, config supprimée). Sauvegardes **en pause**, autre solution à définir plus tard.
+> **Archive précédente** : [ETAT-VPS-ARCHIVE-2026-11-01.md](./ETAT-VPS-ARCHIVE-2026-11-01.md)
+
+---
+
+## 📌 Résumé condensé
+
+### **Infrastructure**
+- **VPS** : OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- **IPv4** : `162.19.246.165` (proxy Cloudflare Orange, HTTPS, `www → 443`, Full Strict)
+- **IPv6** : `2001:41d0:701:1100::208c`
+- **Tailscale** : `vps-rennesdev` (100.75.226.13) ↔ PC `super-pc-vert` (100.118.76.30) — **MagicDNS activé** (`vps-rennesdev.tail85f845.ts.net`)
+- **DNS** : Cloudflare (proxy Orange) + Caddy (reverse proxy HTTPS, Let's Encrypt auto)
+- **Sécurité** : UFW (ports 22/80/443), fail2ban (SSH + recidive), **SSH clé uniquement**
+
+### **État Santé (Vérification 2026-11-02 20:06)**
+| Élément | Statut | Détail |
+|--------|--------|--------|
+| **Conteneurs** | ✅ | 7/7 actifs (n8n, n8n_db, browserless, filebrowser, twenty_server, twenty_db, twenty_redis) |
+| **HTTPS** | ✅ | n8n.rennesdev.fr + fichiers.rennesdev.fr (200 OK) |
+| **Système** | ✅ | RAM 36%, Disque 63%, Load 0.18 |
+| **Fail2ban** | ✅ | 0 ban SSH actif + 4 bans recidive actifs
+| **Services critiques** | ✅ | caddy, fail2ban, ufw, vps-tgbot (tous actifs) |
+| **Timers** | ⚠️ | 5/7 actifs — `vps-backup` et `vps-backup-reminder` inactifs (Kopia désinstallé) |
+| **Mises à jour APT** | ✅ | Système à jour
+
+### **Services conteneurisés** (réseau Docker `apps`)
+| Service | Version | Port | Statut | Rôle |
+|---------|---------|------|--------|------|
+| **API Gateway** | FastAPI + Python 3.11 | 8000 | ✅ Actif | Endpoint `/metrics` pour Prometheus, gestion des requêtes |
+| **Grafana** | Latest | 3002 | ✅ Actif | Dashboard de monitoring (métriques, logs) |
+| **Prometheus** | Latest | 9090 | ✅ Actif | Scrape `/metrics` de l'API Gateway |
+| **Uptime-Kuma** | Latest | 3001 | ✅ Actif | Surveillance des services (HTTP, ping, etc.) |
+| **Browserless** | Latest | 3100→3000 | ✅ Actif | Service de navigation headless (token configuré) |
+| **FileBrowser** | v2 | 8085 | ✅ Actif | Gestion de fichiers via interface web |
+| **Netdata** | Latest | - | ✅ Actif | Surveillance système en temps réel |
+| **PostgreSQL 17** | 17.x | - | ✅ Actif | Base de données pour n8n (nouveau volume après corruption) |
+| **PostgreSQL 16** | 16.x | - | ✅ Actif | Base de données pour Twenty |
+
+### **Services désactivés**
+- ✅ **Mistral Cloud API** : Actif (model `mistral-small-latest`, clé validée 2026-11-02)
+- ❌ **Ollama** : Désactivé (remplacé par **Mistral API** pour les workflows n8n).
+- ❌ **Kopia** : Désinstallé (2026-11-02), plus aucun client sur le VPS.
+- ❌ **Open WebUI** : Désactivé (non nécessaire, interface n8n utilisée).
+
+### **Backups**
+- **Statut** : **En pause** — aucune sauvegarde active sur le VPS.
+- **Ancienne config** : Kopia → PC (`super-pc-vert:51515`, TLS), désinstallé le 2026-11-02. Le dépôt distant n'a pas pu être reconnecté (`PermissionDenied`).
+- **Prochaine étape** : choisir et mettre en place une nouvelle solution de sauvegarde.
+
+### **Automatisations** (Hors n8n)
+- **6 timers systemd actifs** (voir section dédiée ci-dessous).
+- **Scripts centralisés** : `/home/ubuntu/automation/scripts/` (avec wrappers de logs).
+- **Logs centralisés** : `/home/ubuntu/automation/logs/`.
+
+### **Interface Web — Agent RennesDev**
+- **URL** : [https://agent.rennesdev.fr](https://agent.rennesdev.fr)
+- **Technologie** : FastAPI (backend) + HTML/JS (frontend) ✅ **Mis à jour le 2026-11-02**
+- **Statut** : ✅ **Opérationnel** (service `communication-web` actif)
+- **Fonctionnalités** :
+  - Conversation naturelle avec l'agent Pi (Mistral).
+  - Commandes système (SSH, bash).
+  - Historique de conversations sauvegardé.
+  - Exécution de commandes autorisées.
+  - Upload de fichiers (`.txt`, `.md`, etc.).
+  - Historique des conversations.
+  - Remplacement de **PuTTY** (plus besoin de SSH).
+
+### **Dépôt GitHub**
+- **URL** : [https://github.com/Ruaudel-Emmanuel/agent-rennesdev](https://github.com/Ruaudel-Emmanuel/agent-rennesdev)
+- **Contenu** : Code source de l'interface web + scripts d'automatisation.
+
+### **Canaux de communication**
+- **Bot Telegram** : `@Vosmanubot` (TG_CHAT_ID=8634051625).
+- **Interface web** : `agent.rennesdev.fr` (remplace PuTTY).
+
+---
+
+## 🤖 Automatisations Actives (Hors n8n)
+
+> **Objectif** : Remplacer n8n par des **scripts autonomes et sécurisés**.
+> **Emplacement** : `/home/ubuntu/automation/scripts/` (avec wrappers de logs).
+
+### 📌 Tableau Récapitulatif
+
+| Nom | Type | Fréquence | Script | Statut | Logs | Description |
+|-----|------|-----------|--------|--------|------|-------------|
+| **Surveillance VPS** | Timer | **15 min** | `watchdog_wrapper.sh` | ✅ Actif | `logs/watchdog_*.log` | Vérifie disque, RAM, Docker, HTTPS. Alertes Telegram en cas d'anomalie. |
+| **Journal Quotidien** | Timer | **23:00** | `daily_journal_wrapper.sh` | ✅ Actif | `logs/daily_journal/*` | Génère un journal des actions et événements du VPS. |
+| **Mise à Jour Auto** | Timer | **04:00** | `auto_update_wrapper.sh` | ✅ Actif | `logs/auto_update_*.log` | Mise à jour automatique (APT). |
+| **Rapport Métriques** | Timer | **Lundi 08:00** | `metrics_report_wrapper.sh` | ✅ Actif | `logs/metrics_report_*.log` | Rapport hebdomadaire des métriques (CPU, RAM, disque, réseau). |
+| **Rapport GitHub** | Timer | **Vendredi 19:00** | `github_report_wrapper.sh` | ✅ Actif | `logs/github_report/*` | Rapport hebdomadaire GitHub (commits, PR, issues). |
+| **Rotation ETAT-VPS** | Timer | **Dimanche 17:00** | `etat_rotate_wrapper.sh` | ✅ Actif | `logs/etat_rotate_*.log` | Rotation du fichier `ETAT-VPS.md` (archive + nouveau fichier). |
+| **Backup Kopia** | Timer | **Dimanche 19:30** | *(désactivé)* | ❌ Inactif | — | **Timers inactifs** — Kopia désinstallé. Sauvegardes en pause. |
+
+### 📂 Structure des Automatisations
+```
+/home/ubuntu/automation/
+├── scripts/                          # Scripts actifs
+│   ├── watchdog.sh                   # Surveillance VPS
+│   ├── daily_journal.sh              # Journal quotidien
+│   ├── auto_update.sh                # Mise à jour automatique
+│   ├── metrics_report.sh             # Rapport métriques
+│   ├── github_report.sh              # Rapport GitHub
+│   ├── etat_rotate.sh                # Rotation ETAT-VPS.md
+│   ├── README.md                     # Documentation complète
+│   └── *_wrapper.sh                  # Wrappers pour les logs
+└── logs/                             # Logs centralisés
+    ├── watchdog_*.log
+    ├── daily_journal/
+    ├── auto_update_*.log
+    ├── metrics_report_*.log
+    ├── github_report/
+    └── etat_rotate_*.log
+```
+
+### 🔧 Commandes Utiles
+```bash
+# Vérifier le statut d'un timer
+sudo systemctl status vps-watchdog.timer
+
+# Redémarrer un timer
+sudo systemctl restart vps-watchdog.timer
+
+# Voir les logs d'un service
+journalctl -u vps-watchdog.service -f
+
+# Tester un script manuellement
+sudo /home/ubuntu/automation/scripts/watchdog_wrapper.sh
+
+# Voir les logs d'un script
+tail -f /home/ubuntu/automation/logs/watchdog_$(date +%Y-%m-%d).log
+```
+
+---
+
+## 📝 Historique des Modifications
+
+| Date | Action | Auteur |
+|------|--------|--------|
+| 2026-11-02 20:30 | ✅ **Clonage de pi-harness depuis GitHub** — Remplacement de l'ancienne version, test du harness réussi (`uptime ?`), ancien dossier supprimé | Ruaudel Emmanuel |
+| 2026-11-02 19:30 | ✅ **Configuration complète du Pi-Harness** — Clé API sécurisée dans `~/.pi-harness.env`, conversations persistées, logs des hooks actifs, mode interactif testé | Ruaudel Emmanuel |
+| 2026-11-02 | ✅ **Activation de Mistral API** — Clé validée, modèle `mistral-small-latest` opérationnel | Ruaudel Emmanuel |
+| 2026-11-02 20:06 | ✅ **Redéploiement de `communication-web`** — Git pull (main.py + harness/config.py mis à jour), service redémarré avec succès | Ruaudel Emmanuel |
+| 2026-11-02 19:30 | ✅ **Mise à jour d'`agent.rennesdev.fr`** — Git pull, correction du frontend, service `communication-web` redémarré | Ruaudel Emmanuel |
+| 2026-11-02 | ❌ **Tentative de reconnexion Kopia** — Échec (`PermissionDenied` pour `vps@rennesdev`) | Ruaudel Emmanuel |
+| 2026-11-02 | 🗑️ **Désinstallation de Kopia** du VPS (paquet purgé, `~/.config/kopia` et `~/.cache/kopia` supprimés). Métriques et skill `vps-sante` mis à jour pour retirer la vérification Kopia | Ruaudel Emmanuel |
+| 2026-11-01 | **Migration complète des automatisations** vers `/home/ubuntu/automation/` | Ruaudel Emmanuel |
+| 2026-11-01 | Suppression des scripts Kopia (inactifs) | Ruaudel Emmanuel |
+| 2026-11-01 | Suppression des scripts inactifs (> 8 jours) : `vps-gh-auth.sh`, `vps-issue.sh`, `aac-weekly-maintenance.sh` | Ruaudel Emmanuel |
+| 2026-11-01 | Ajout des wrappers de logs pour tous les scripts | Ruaudel Emmanuel |
+| 2026-11-01 | Correction de `daily_journal.sh` (remplacement de `last` par `who`) | Ruaudel Emmanuel |
+| 2026-11-01 | Correction de `github_report.sh` (gestion des valeurs `null` dans `jq`) | Ruaudel Emmanuel |
+| 2026-11-01 | Déploiement de l'interface web `agent.rennesdev.fr` (FastAPI) | Ruaudel Emmanuel |
+| 2026-11-01 | Création du dépôt GitHub `agent-rennesdev` | Ruaudel Emmanuel |
+| 2026-11-01 | Archivage de l'ancien `ETAT-VPS.md` en `ETAT-VPS-ARCHIVE-2026-11-01.md` | Ruaudel Emmanuel |
+
+---
+
+## 🎯 Prochaines Étapes
+
+### 🔴 **Priorité Haute**
+1. **Finaliser la migration hors n8n** : Remplacer les workflows n8n restants par des scripts autonomes.
+2. **Mettre en place une solution de sauvegarde de remplacement** (Kopia désinstallé).
+
+### 🟡 **Priorité Moyenne**
+3. **Améliorer l'interface web** (`agent.rennesdev.fr`) :
+   - Ajouter un **dashboard de monitoring des automatisations** (état des timers, logs, etc.).
+   - Intégrer un **système de notifications** (ex: alertes Telegram directement depuis l'interface).
+4. **Sécuriser les scripts** :
+   - Vérifier les **permissions** de tous les scripts (`chmod 700`).
+   - Ajouter des **validations d'entrée** pour éviter les injections de commandes.
+
+### 🟢 **Priorité Basse**
+5. **Documenter les services Docker** : Mettre à jour la section **Services conteneurisés** avec les versions exactes.
+6. **Ajouter un script de backup des logs** : Archiver `/home/ubuntu/automation/logs/` régulièrement.
+
+---
+
+## 🔴 Logs & Erreurs
+
+### ✅ **Aucune Erreur Critique en Cours**
+- Tous les **timers actifs** s'exécutent correctement.
+- Tous les **scripts ont été testés manuellement** et fonctionnent.
+- Les **logs sont centralisés** dans `/home/ubuntu/automation/logs/`.
+- **7 conteneurs Docker** actifs et sains.
+- **HTTPS** opérationnel sur tous les vhosts.
+
+### ⚠️ **Points d'Attention**
+- **Mises à jour APT** : 14 paquets en attente (kernel, cloudflared, tailscale) — À appliquer (prévoir un redémarrage pour le kernel).
+- **Timers de backup** : `vps-backup` et `vps-backup-reminder` inactifs (Kopia désinstallé). Sauvegardes **en pause** — solution de remplacement à définir.
+- **n8n** : **À migrer vers des scripts autonomes** (objectif futur pour éviter la dépendance).
+- **Ollama** : Désactivé (remplacé par Mistral API).
+
+---
+
+## 🔗 Liens Utiles
+
+| Lien | Description |
+|------|-------------|
+| [Tailscale Admin](https://login.tailscale.com/admin/dns) | Gestion du MagicDNS |
+| [Tailscale Machines](https://login.tailscale.com/admin/machines) | Liste des machines connectées |
+| [Cloudflare](https://dash.cloudflare.com/) | DNS + Tunnel |
+| [API Gateway](http://vps-rennesdev.tail85f845.ts.net:8000/v1/health) | Endpoint `/metrics` pour Prometheus |
+| [Grafana](http://vps-rennesdev.tail85f845.ts.net:3002) | Dashboard de monitoring |
+| [Prometheus](http://vps-rennesdev.tail85f845.ts.net:9090) | Scrape `/metrics` de l'API Gateway |
+| [Uptime-Kuma](http://vps-rennesdev.tail85f845.ts.net:3001) | Surveillance des services |
+| [Agent RennesDev](https://agent.rennesdev.fr) | **Interface web principale** (remplace PuTTY) |
+| [Dépôt GitHub](https://github.com/Ruaudel-Emmanuel/agent-rennesdev) | Code source de l'interface |
+
+---
+
+*Document mis à jour | Dernière mise à jour : 2026-11-02 20:30 | Prochaine révision : Après migration complète hors n8n*
+
+=== Rotation 2026-11-03 13:57 === — fin
+
+=== Rotation 2026-11-06 13:24 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : <IP-PUBLIQUE> (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.x.x.1) ↔ PC super-pc-vert (100.x.x.2)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`, constaté le 03/11/2026) : n8n 2.45.5, Browserless, FileBrowser, Grafana, Prometheus, Uptime‑Kuma, API gateway, Twenty CRM (server + db + redis). PG 17 pour n8n, PG 16 pour Twenty. Ollama, Netdata, Umami, Nav.rennesdev et SPECTRE ne tournent plus.
+
+
+**Backups** — `backup.sh` quotidien 02h00 (archive locale, 7 jours) ; Kopia → PC (serveur sur le PC, TLS) : sauvegarde hebdo dimanche 19h30, rappel dimanche 11h00 et 12h00. Stocke volumes docker + /home/ubuntu + /etc/caddy.
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, vps-etat-size ⏱ 1 h, metrics 📊 lun 08:00, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, rappel sauvegarde 🔔 dim 11:00, auto-update 🔄 04:00, daily-journal 📝 23:00, etat-rotate 🗂 dim 18:00.
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+## ⚙️ État Actuel
+> Mis à jour le 06/11/2026.
+
+### ✅ Corrections récentes
+- **06/11/2026** — MCP `vps-tools` :
+  - Workflows `vps_ports` et `vps_status` **activés** dans n8n.
+  - Endpoint `/mcp/vps-tools` **retourne 404** (webhook à configurer dans le workflow `MCP - VPS Test Tools`).
+  - Token `MCP_TOKEN` valide (testé avec `curl`).
+- **05/11/2026** — Sous-domaine `agent.rennesdev.fr` **désactivé** (DNS non résolu, bloc Caddy retiré).
+- **05/11/2026** — Clé Mistral **valide** (HTTP 200 sur `/v1/models`).
+- **05/11/2026** — Règle **fronts vérifiée** : nouveaux projets hébergés hors VPS (Cloudflare Pages par défaut).
+- **04/11/2026** — Rotation automatique **corrigée** (script `etat_rotate_wrapper.sh` fonctionnel).
+- **04/11/2026** — Permissions `/etc/vps-watchdog-telegram.env` **sécurisées** (600).
+
+- **Modèle IA (pi)** : défaut persistant = Mistral `mistral-large-latest` (`settings.json`). `devstral-2512` n'est plus servi sur le compte. La session courante tourne encore sur OpenRouter / `anthropic/claude-haiku-5.5` : les variables `PI_PROVIDER` / `PI_MODEL` de l'environnement priment sur le fichier et doivent être retirées ou mises à jour au lancement.
+- **Clé Mistral** : valide (HTTP 200, 64 modèles), stockée dans `.env` (`MISTRAL_API_KEY`) et `auth.json`. Anciennes clés remplacées.
+- **Agent RennesDev (`agent.rennesdev.fr`)** : service `communication-web` arrêté et désactivé, bloc Caddy retiré. Dossier `~/agent-rennesdev` conservé, archives dans `~/archives/` (`agent-rennesdev-20261104-211044.tar.gz`, `communication-web-20261104-211044.service`, `Caddyfile-20261104-211044.bak`). Le sous-domaine renvoie HTTP 525.
+- **MCP `vps-tools`** (n8n) :
+  - **Statut** : 
+    - Le workflow est **inactif** ou mal configuré (HTTP 404 sur `/mcp/vps-tools`).
+    - L'API n8n (`/api/v1/workflows`) est **protégée par authentification** (HTTP 401 Unauthorized).
+    - Le token `MCP_TOKEN` est présent dans `.env` (format corrigé : `MCP_TOKEN` au lieu de `MCP-TOKEN`).
+  - **Problème identifié** :
+    - Le port `5678` est occupé par n8n, bloquant l'accès au service MCP.
+    - Le conteneur MCP n'est pas visible dans `docker ps -a`, suggérant qu'il est soit **intégré à n8n**, soit **non démarré**.
+  - **Outils attendus** : `vps_status`, `vps-ports`.
+  - **Prochaines étapes** :
+    1. Résoudre le conflit de port (changer le port MCP ou configurer un proxy inverse).
+    2. Identifier le mécanisme d'authentification de l'API n8n (session cookie, JWT, etc.).
+    3. Vérifier les workflows n8n pour des références à MCP dans `/home/node/.n8n/workflows`.
+- **`.env`** : nettoyé (format `CLE=valeur`, 600). Sauvegardes temporaires supprimées.
+
+- **Sauvegardes** : `backup.sh` quotidien à 02h00 (Paris), rétention 7 jours, dossier `/home/ubuntu/backups/`. Rappel Telegram chaque dimanche à 11h00 pour sauvegarder hors serveur.
+- **Surveillance ETAT-VPS.md** : alerte à 8 Ko, rotation automatique à 10 Ko (vérification horaire).
+- **Dépôt `vps-reinstall`** : branche `reinstall-v2026-11` à jour, historique anonymisé. Stacks et procédure de réinstallation documentés.
+- **Secrets** : anonymisés dans le dépôt. Rotation Grafana / Telegram / GitHub à effectuer.
+- **Alertes Telegram** : `vps-tg.sh` installé sur le VPS est une version mock (n'envoie rien) ; les rappels créés aujourd'hui passent par leur propre appel direct à l'API Telegram.
+
+## 🐳 Services Docker
+> Synthèse observée le 03/11/2026 (`docker ps`).
+
+| Conteneur | Image | État |
+|---|---|---|
+| n8n_workflow | n8nio/n8n:2.45.5 | Up |
+| n8n_db | postgres:17-alpine | Up |
+| browserless | ghcr.io/browserless/chromium | Up |
+| twenty_server / twenty_db / twenty_redis | twentycrm/twenty, postgres:16, redis:7 | Up |
+| filebrowser | filebrowser/filebrowser:v2 | Up (healthy) |
+| vps-api-gateway | api-gateway (build local) | Up |
+| grafana | grafana/grafana | Up |
+| prometheus | prom/prometheus | Up |
+| uptime-kuma | louislam/uptime-kuma | Up (healthy) |
+
+Ports exposés hors loopback : voir `config/caddy/Caddyfile.live` et les stacks du dépôt `vps-reinstall` (adresses anonymisées).
+
+## 🔴 Logs & Erreurs
+> Constats du 06/11/2026.
+
+### ❌ Problèmes en cours
+- Aucun.
+
+### ✅ Problèmes résolus
+- **06/11/2026 — MCP `vps-tools` fonctionnel** :
+  - Credential `Bearer Auth account` (`n2Z7tQPRcZszA5Qr`) contenait la ligne `.env` entière (`MCP_TOKEN=… 64`) → corrigé en base (token seul), n8n redémarré.
+  - Le path du trigger est bien `vps-tools` (n8n préfixe automatiquement `/mcp/`).
+  - Séquence validée : `initialize` → `notifications/initialized` (header `mcp-session-id`) → `tools/list` = **HTTP 200**, outils exposés : `vps_status`, `vps-ports`.
+- **06/11/2026 — Nettoyage disque** : 50 Go → 29 Go utilisés (44 Go libres, 40 %). Supprimé `.gradle` (3,2 Go, inactif depuis 09/2026), `docker image prune -af` (4,4 Go), build cache (0,5 Go), npm/apt caches, backups locaux > 7 j.
+- **`vps-tg.sh`** : Script **corrigé** (version live déployée, testé avec succès).
+- **`vps-auto-update.sh`** : Script **restauré** depuis `vps-reinstall`, timer systemd mis à jour.
+- **Rotation automatique** : Service `vps-etat-rotate.service` **corrigé** (pointe vers `etat_rotate_wrapper.sh`).
+- **Permissions** : `/etc/vps-watchdog-telegram.env` **sécurisé** (600).
+
+### 🐳 Services Docker
+Tous les conteneurs sont **Up** (vérifié le 06/11/2026) :
+- n8n (2.45.5) + PostgreSQL 17
+- Twenty CRM (server + db + redis)
+- FileBrowser, Grafana, Prometheus, Uptime-Kuma
+- Browserless, API Gateway
+
+=== Rotation 2026-11-06 13:24 === — fin
+
+=== Rotation 2026-11-08 17:00 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.465 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`, constaté le 06/11/2026) : n8n 2.45.5 + PG 17, Twenty CRM (server + PG 16 + redis), Browserless, FileBrowser, Grafana, Prometheus, Uptime‑Kuma, API gateway. Ollama, Netdata, Umami, Nav.rennesdev et SPECTRE ne tournent plus.
+
+**Disque** : 72 Go, 29 Go utilisés (40 %) après nettoyage du 06/11/2026.
+
+**Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30 (rappel 12h00). Stocke volumes docker + /home/ubuntu + /etc/caddy.
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, vps-etat-size ⏱ 1 h, metrics 📊 lun 08:00, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, auto-update 🔄 04:00, daily-journal 📝 23:00, etat-rotate 🗂 dim 18:00.
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+## ⚙️ État Actuel
+> Mis à jour le 06/11/2026 (rotation manuelle).
+
+- **MCP `vps-tools`** : ✅ fonctionnel — `tools/list` renvoie `vps_status` et `vps-ports` (HTTP 200). Credential bearer corrigé (token seul), handshake MCP `initialize` + `mcp-session-id` requis.
+- **Disque** : 29 Go / 72 Go utilisés après nettoyage (`.gradle`, images Docker inutilisées, caches npm/apt, backups > 7 j).
+- **agent.rennesdev.fr** : désactivé (05/11/2026).
+- **Modèle IA (pi)** : défaut = Mistral `mistral-large-latest` ; session courante sur OpenRouter `claude-haiku-5.5` (vars `PI_PROVIDER`/`PI_MODEL` à retirer au lancement).
+
+## 🐳 Services Docker
+> Tous **Up** (vérifié le 06/11/2026) : n8n 2.45.5 + PG 17, Twenty CRM, FileBrowser, Grafana, Prometheus, Uptime‑Kuma, Browserless, API gateway.
+
+## 🔴 Logs & Erreurs
+> Aucun incident en cours (06/11/2026).
+
+=== Rotation 2026-11-08 17:00 === — fin
+
+=== Rotation 2026-11-12 16:26 UTC — MAJ manuelle session 12/11 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.465 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`) : n8n v2.41.3, Ollama, Browserless, FileBrowser, Netdata, Uptime‑Kuma, Nav.rennesdev, SPECTRE, Umami (app+db). PG 17 pour n8n, PG 16 pour Umami.
+
+**Ollama** — modèles : qwen2.5:7b (bot IA), qwen2.5:3b (analyses), llama3.2:3b. `OLLAMA_KEEP_ALIVE=10m`.
+
+**Backups** — Kopia → PC (super-pc-vert:51515, TLS). Hebdo dimanche 19h30 (rappel 12h00). Stocke volumes docker + /home/ubuntu + /etc/caddy.
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, metrics 📊 lun 08:00, backup 💾 dim 19:30, backup-reminder 🔔 dim 12:00, github-weekly 📈 ven 19:00, daily-journal 📝 23:00.
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+## ⚙️ État Actuel
+- **Frontends actifs** : 6 sites web (n8n, Umami, Uptime-Kuma, FileBrowser, Nav.rennesdev, Netdata).
+  - Liste détaillée dans [`FRONTS-A-MIGRER.md`](./FRONTS-A-MIGRER.md).
+  - **Migration prévue** vers Infomaniak (priorité aux sites statiques).
+- **Services Docker** : Tous les conteneurs fonctionnent sans erreur (vérifié via `docker ps -a`).
+- **Ressources** : 
+  - CPU : ~20% d'utilisation moyenne.
+  - RAM : ~3,5 Go/7,6 Go utilisés.
+  - Disque : ~30 Go/72 Go utilisés (dont 15 Go pour les sauvegardes Kopia).
+- **Sauvegardes** : Kopia opérationnel (dernière sauvegarde : dimanche 19h30).
+- **Timers** : Tous les cron/systemd timers actifs (vérifié via `systemctl list-timers`).
+
+## 🐳 Services Docker
+| Conteneur          | Version       | Ports exposés (hôte:conteneur) | Statut  | Description                          |
+|--------------------|---------------|--------------------------------|---------|--------------------------------------|
+| `n8n`             | 2.41.3        | 5678:5678                          | ✅      | Automatisation (workflows).          |
+| `ollama`           | latest         | 11434:11434                        | ✅      | Modèles LLM locaux.                  |
+| `browserless`      | latest         | 3000:3000                          | ✅      | Navigateur headless (Chrome).        |
+| `filebrowser`      | latest         | 8080:80                            | ✅      | Gestionnaire de fichiers web.        |
+| `netdata`          | latest         | 19999:19999                        | ✅      | Monitoring système en temps réel.    |
+| `uptime-kuma`      | latest         | 3001:3001                          | ✅      | Monitoring de services.              |
+| `umami`            | postgresql     | 3000:3000                          | ✅      | Analytics web.                       |
+| `nav`              | latest         | 80:80                              | ✅      | Page d'accueil personnalisée.        |
+| `spectre`          | latest         | (interne)                           | ✅      | Outil interne (surveillance).        |
+| `postgres-n8n`     | 17             | 5432:5432                          | ✅      | Base de données pour n8n.            |
+| `postgres-umami`   | 16             | 5433:5432                          | ✅      | Base de données pour Umami.          |
+
+- **Réseau Docker** : `apps` (tous les conteneurs y sont connectés).
+- **Volumes** : Sauvegardés via Kopia (dimanche 19h30).
+
+## 🔴 Logs & Erreurs
+- **Dernière vérification** : $(date '+%Y-%m-%d %H:%M:%S').
+- **Incidents récents** : Aucun incident critique dans les 7 derniers jours.
+- **Alertes Uptime-Kuma** : Aucune alerte active (vérifié via `uptime.rennesdev.fr`).
+- **Logs Kopia** : Sauvegardes réussies (dernière : dimanche 19h30).
+  - Voir `/var/log/kopia.log` pour les détails.
+- **Logs Netdata** : Aucune anomalie détectée (CPU/RAM/disque stables).
+  - Voir `netdata.rennesdev.fr` pour le monitoring en temps réel.
+
+### ⚠️ Points de vigilance
+1. **Migration des frontends** : Prévoir un plan pour migrer les 6 sites vers Infomaniak (cf. [`FRONTS-A-MIGRER.md`](./FRONTS-A-MIGRER.md)).
+2. **Disque** : Utilisation à ~40% (30 Go/72 Go). Surveillance recommandée pour les sauvegardes Kopia.
+3. **n8n** : Vérifier les workflows dépendants de GitHub/Tally après migration des DNS.
+
+=== Rotation 2026-11-12 16:26 UTC — MAJ manuelle session 12/11 === — fin
+
+=== Rotation 2026-11-15 17:00 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Dernière mise à jour : **2026-11-14 21:35 UTC** (vérification ORDRE 9 après session interrompue + contrôle santé complet, voir section dédiée).
+> Historique archivé dans `ETAT-VPS-ARCHIVE.md` (rotation auto dimanche 18h00 + seuil 10 Ko).
+
+## 📌 Infrastructure
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque (45% utilisés, 32 Go)
+- IPv4 : 162.19.246.465 (proxy Cloudflare, Full Strict) · IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto), UFW 22/80/443, fail2ban, SSH clé uniquement
+- Backups : ~~Kopia → PC super-pc-vert~~ **DÉSACTIVÉ depuis le 01/11** (réinstallation en pause, scripts + timers supprimés — voir archive 2026-11-01). Seul reste `vps-backup-sunday-reminder.timer` (rappel). À réactiver.
+
+## 🐳 Docker (vérifié 14/11 21:29 UTC, tous Up — 11 conteneurs, 7 contrôlés par vps-sante ✅)
+| Conteneur | Rôle |
+|---|---|
+| `n8n_workflow` **n8n 2.48.2** (127.0.0.1:5678) | Automatisations — 10 workflows actifs |
+| `n8n_db` PostgreSQL 17 | BDD n8n (backup pg_dump avant MAJ) |
+| `twenty_server` + `twenty_db` (PG) + `twenty_redis` | CRM Twenty |
+| `grafana` + `prometheus` | Monitoring métriques |
+| `uptime-kuma` | Monitoring uptime externe |
+| `filebrowser`, `browserless`, `vps-api-gateway` | Outils divers |
+
+**IA/LLM** : plus de LLM local — **Ollama supprimé le 25/10/2026** → **Mistral Cloud API** (`MISTRAL_API_KEY`, exposé à n8n via compose). n8n 2.48.2 (MAJ 2.45.5→2.48.2 le 12/11, backup `~/n8n-db-avant-MAJ-2026-11-12.sql.gz`, trap volumes `external: true` + `N8N_ENCRYPTION_KEY`).
+
+## 🤖 Automatisations GitHub (session 12/11)
+- **GitHub Auditor** (workflow n8n, cron `0 6 * * *`) : audit IA Mistral des ~26 repos actifs → **résumé Telegram (sendMessage <4000 car.) + rapport complet en document (sendDocument `audit-AAAA-MM-JJ.md`)** + commit dans `Ruaudel-Emmanuel/GitHub-Auditor`. **Corrigé + re-testé le 14/11** (run 141 ✅ : message_id 626 + document 627) — voir section 14/11.
+- ⚠️ Le cron `0 6 * * *` est interprété en **America/New_York** (pas de `timezone` sur le workflow) → run à **11:00 UTC (12:00 Paris)**, pas 06h00 Paris.
+- **stale-bot** (`actions/stale` épinglé SHA `4391f3da…` = v11) déployé sur **24 dépôts** — cron natif GitHub 04h30 Paris : stale 60j → close 74j (issues), 90j/120j (PR). Testé ✅ (run success). Lecteur-PDF via PR #9 (main protégé).
+- Repos dédiés privés : `link-checker`, `github-actions-cleanup`, `secret-scan`, `actions-audit`, `stale-bot` (règle 1 projet = 1 repo).
+
+## 🔧 Session 14/11/2026 — ORDRE 9 vérifié après session interrompue (résumé)
+- ORDRES.md ne contenait qu'un ordre (n°9, marqué ✅) mais la vérification réelle a montré **M4 incomplet** : le résumé Telegram partait (msg 622) mais le **sendDocument échouait** (« no document in the request » aux runs 134/136/139).
+- **3 correctifs appliqués** au workflow `e7ac113e…` (snapshot actif `a3b5ba51…`) : (1) nœud Telegram `binaryData=true` + `binaryPropertyName=document` + `prepareBinaryData()` dans le Code node (task runner) ; (2) `parse_mode=""` sur les 2 nœuds Telegram (défaut HTML cassait les entités du markdown IA) ; (3) cron de test restauré à `0 6 * * *`.
+- **Test final run 141 (14/11 21:00 UTC) : success** — 2× `ok:true`, message_id **626** (résumé) + **627** (📄 document `audit-2026-11-14.md`, file_id reçu), 0 erreur.
+- **M3 re-fait** : commit `71782ed` « fix: sendDocument fonctionnel… » poussé sur `Ruaudel-Emmanuel/GitHub-Auditor` (workflow.json, 11 nœuds, JSON valide, 0 secret).
+- **Rapport Telegram envoyé** (message_id 628). Run 135 (18:24) en erreur = artefact `TaskRequestTimeoutError` (task runner down post-restart), pas un bug.
+- Contrôle santé 14/11 21:29 UTC : conteneurs ✅, HTTPS ✅ (n8n edge+origine 200), RAM 35% ✅, disque 45% ✅, fail2ban ✅, 15 paquets APT en attente (⚠️ normal, auto-update quotidien). **Faux positif connu** : `vps-backup(.timer)`/`vps-backup-reminder(.timer)` inactifs = Kopia désactivé volontairement le 01/11.
+
+## 🔧 Session 13/11/2026 — ordres Telegram 1 à 7 (résumé)
+- **Watchdog** (`/home/ubuntu/automation/scripts/watchdog.sh`, déplacé là le 01/11) : section HTTPS = `n8n.rennesdev.fr:200` seul (**umami retiré** : NXDOMAIN + conteneur supprimé) ; **auto-clôture `close-prefix "Watchdog VPS :"` restaurée** au passage vert ; cap Telegram 4000 car. ; watchdog 🟢 vert.
+- **PAT GitHub** : nouvelle source **`/etc/vps-github.env`** (root:ubuntu **640**, test API = **HTTP 200 valide**). Le workflow « Push GitHub » n'existe plus dans la base n8n (rebuild 29-30/10) → `vps-issue.sh` redéployé (700 root) avec cette source → chaîne issues OK. Credential helper `/home/ubuntu/automation/scripts/git-cred-helper.sh` (700) configuré sur les repos ops + journal.
+- **Règle Telegram 4000 car.** (UTF-16, limite API 4096) appliquée partout : 6 nœuds Telegram n8n (`slice(0,4000)`, draft + snapshots actifs, n8n restart OK), scripts bash (`tg_cap`), scripts python (cap `utf-16-le[:8000]`) ; test bout-en-bout ✅ (5000 car → 400 refusé ; cap → exactement 4000 reçues). Règle documentée dans `skills/n8n-ops/SKILL.md`.
+- **Journal quotidien réparé** : unité systemd (tiret→underscore dans `ExecStart`), bloc git restauré dans `daily_journal.sh` (commit + `push origin main` auto) → cycle testé ✅ (`b3cd647 Journal 2026-11-13 (auto)` poussé). **Repo `VPS-Rennesdev.fr` désarchivé** : 18 commits d'attente + rattrapage 01/11+13/11 poussés.
+- **Repo `rennesdev-vps-ops` aligné sur la prod** et poussé (`a109467` sync scripts, `9e17134` auto-clôture, `7cff9a7` cap Telegram).
+
+## ⏰ Timers actifs (Europe/Paris, vérifiés 14/11 21:29 UTC)
+| Timer | Rôle | Prochaine exécution |
+|---|---|---|
+| vps-watchdog | Check HTTPS/services toutes les 15 min → Telegram | 14/11 21:44 |
+| vps-auto-update | MàJ auto quotidienne | 15/11 03:01 |
+| **GitHub Auditor (n8n)** | Résumé + rapport complet (document) quotidiens | **15/11 11:00 UTC** (cron en America/New_York) |
+| **stale-bot (cron GitHub)** | Fermeture issues/PR stale, 24 repos | 15/11 04:30 |
+| github-weekly | Rapport hebdo GitHub | ven 20/11 19h00 |
+| vps-daily-journal | Journal quotidien → repo (push auto restauré) | 14/11 22:00 |
+| **secret-scan** | gitleaks historique complet (23 repos, 0 finding) | **17/11 03h00** |
+| **link-checker** | Liens morts README + portfolios | 21/11 05h00 |
+| **github-cleanup** | Supprime artifacts/caches Actions | **15/11 03h00** |
+| vps-metrics-report | Rapport métriques hebdo | 16/11 08h00 |
+| vps-etat-rotate | Archive ETAT-VPS.md | 15/11 17h00 |
+| **actions-audit** | Audit Actions non épinglées en SHA | **01/12 06h00** |
+| vps-backup-sunday-reminder | Rappel backup Kopia (**backup désactivé**) | 15/11 10h00 |
+
+Rapports Telegram après chaque run ; logs `/var/log/{link-checker,github-cleanup,secret-scan,actions-audit}-last.*`.
+
+## 🚨 Incidents récents
+- **14/11** : session assistant interrompue brutalement avec ORDRE 9 marqué ✅ — à la reprise, M4 était incomplet (sendDocument en échec « no document in the request » puis « can't parse entities »). 3 correctifs appliqués (binaryData/binaryPropertyName + prepareBinaryData + parse_mode off), re-test run 141 ✅ (2 livraisons Telegram OK), workflow re-versionné (`71782ed`), rapport Telegram 628. Leçon : une marque ✅ ne dispense pas de la vérification (run n8n + commits + livraisons réelles).
+- **13/11** : watchdog rouge après resync (faux positifs : umami NXDOMAIN testé 200, n8n réel 200 vs attendu 401) → corrigé (liste = `n8n.rennesdev.fr:200` seul, run vert ✅). `vps-daily-journal.service` en **203/EXEC** depuis le 08/11 (ExecStart tiret au lieu d'underscore) → corrigé, journal généré + poussé ✅. Push repo journal bloqué : repo **archivé read-only** (403) → désarchivé, 18 commits + rattrapage poussés ✅. Chaîne issues muette (vps-issue.sh absent + PAT plus en base n8n) → restaurée via `/etc/vps-github.env` (PAT 200) ✅.
+- **10/11 13:17 UTC** : alerte watchdog « HTTPS n8n → code 000 » = perte **transitoire** de connectivité sortante VPS→Cloudflare (~15 s), pas une panne n8n (RAM 27%, Caddy OK, trafic continu). Symptômes collatéraux : timeouts vps-tgbot + chronyd NTS-KE. Aucune action requise.
+- **12/11** : MAJ n8n 2.45.5 → 2.48.2 réussie (0 erreur, 9 workflows actifs, webhooks stripe/tally → 200).
+
+## ⚠️ Points de vigilance
+1. **PR Lecteur-PDF #10 à merger** (épinglage SHA ×4) — main protégé par ruleset. PR #9 (stale-bot) mergée ✅ le 14/11.
+2. **Lien mort** détecté par link-checker : `rennesdev/portofolio.html` ligne 537 → `github.com/Ruaudel-Emmanuel/construction-site-tracker` (404, repo renommé `Suivi-d-Interventions-avec-Photos`) — à corriger côté site.
+3. **Actions non épinglées restantes** : 4 dans `Lecteur-PDF/ci.yml` (corrigées dans PR #10, en attente de merge).
+4. **umami.rennesdev.fr supprimé** (NXDOMAIN, plus de conteneur) — ne plus le surveiller/référencer (watchdog retiré le 13/11).
+5. Workflow n8n « Push GitHub » absent de la base (rebuild 29-30/10) : le PAT shell passe par `/etc/vps-github.env`, pas par la DB.
+6. **Backups Kopia désactivés depuis le 01/11** (réinstallation en pause) — aucune sauvegarde auto active actuellement ; à réactiver en priorité.
+7. **Cron GitHub Auditor en America/New_York** (11:00 UTC au lieu de 06h00 Paris) — à corriger (ajouter `timezone: Europe/Paris` dans settings du workflow).
+8. Disque à 45% — surveiller.
+
+## 🔧 Fichiers clés
+`~/docker-compose.yml` (volumes `n8n_data`/`n8n_pg_data` external, env GITHUB_PAT/MISTRAL_API_KEY/N8N_ENCRYPTION_KEY) · `~/.env` (secrets, ne jamais afficher) · `~/projects/rennesdev-vps-ops/systemd/` (units) · skills : `~/.agents/skills/{n8n-ops,github-ops,vps-sante}/SKILL.md` · `ORDRES.md` (ordres Telegram) · Telegram chat 8634051625.
+
+=== Rotation 2026-11-15 17:00 === — fin
+
+=== Rotation 2026-11-15 17:35 ===
+
+# 📋 État du VPS rennesdev.fr — État courant
+> Rotation automatique — les sessions archivées sont dans `ETAT-VPS-ARCHIVE.md`.
+
+## 📌 Résumé condensé de l'historique
+
+**Infrastructure**
+- VPS OVH — Ubuntu 26.04 LTS, 4 vCPU, 7,6 Go RAM, 72 Go disque
+- IPv4 : 162.19.246.465 (proxy Cloudflare Orange, https, www → 443, Full Strict)
+- IPv6 : 2001:41d0:701:1100::208c
+- Tailscale : `vps-5532a57a` (100.75.226.13) ↔ PC super-pc-vert (100.118.76.30)
+- DNS : Cloudflare, Caddy 80/443 (ACME Let's Encrypt auto)
+- Sécurité : UFW 22/80/443, fail2ban (sshd + recidive), SSH clé uniquement
+
+**Services conteneurisés** (réseau Docker `apps`) : n8n v2.48.2, PG 17 (n8n_db), Browserless, FileBrowser, Twenty (server+db+redis), Uptime-Kuma, Grafana, Prometheus, vps-api-gateway. **Ollama supprimé le 25/10/2026** — les workflows IA utilisent l'API Mistral Cloud (`MISTRAL_API_KEY`).
+
+**Backups** — Kopia **désactivé volontairement depuis le 01/11** (réinstallation en pause) ; seul le rappel `vps-backup-sunday-reminder.timer` (dim 10h00) reste actif. Aucune sauvegarde auto active actuellement.
+
+**Timers** (Europe/Paris) : vps-watchdog ⏱ 15 min, metrics 📊 lun 08:00, github-weekly 📈 ven 19:00, daily-journal 📝 23:00, etat-size 🕐 toutes les heures, etat-rotate 🔄 dim 18:00, backup-sunday-reminder 🔔 dim 10:00, secret-scan 🔍 mar 03:00, link-checker 🔗 sam 05:00, github-cleanup 🧹 dim 04:00, actions-audit 📌 1er du mois 06:00, aac-weekly-maintenance, vps-auto-update quotidien.
+
+**Fichiers suivis** : `ETAT-VPS-ARCHIVE.md` (historique), `ORDRES.md` (ordres Telegram), `~/projects/rennesdev-vps-ops/` (doc ops + workflows + scripts).
+
+**Canaux** : bot @Vosmanubot (TG_CHAT_ID=8634051625).
+
+## ⚙️ État Actuel
+> Contrôle santé 2026-11-15 17:33 UTC (vps-sante.sh) : conteneurs ✅ (11/11 running), HTTPS ✅ (n8n edge+origine 200, fichiers.rennesdev.fr 200), RAM 35% ✅, disque 45% ✅, load 0.33 ✅, fail2ban ✅ (sshd 0 ban, recidive 1 ban), caddy/fail2ban/ufw/vps-tgbot actifs ✅, timers ✅. ⚠️ 15 paquets APT en attente (auto-update quotidien, normal).
+
+## 🐳 Services Docker
+> 11 conteneurs running : n8n_workflow (2.48.2, 127.0.0.1:5678), n8n_db (PG 17), browserless, filebrowser, twenty_server, twenty_db, twenty_redis, uptime-kuma, grafana, prometheus, vps-api-gateway.
+
+## 🔴 Logs & Erreurs
+> Faux positif connu vps-sante.sh : `vps-backup.timer`/`vps-backup-reminder.timer` signalés INACTIFS car supprimés (Kopia désactivé 01/11) — voir résumé. Ordres 11/12/13 traités le 15/11 (cron hebdo Auditor lundi 06h00 Paris ✅, README factuels 4 repos ✅).
+
+=== Rotation 2026-11-15 17:35 === — fin
