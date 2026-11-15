@@ -1,94 +1,28 @@
-# 🖥️ rennesdev-vps-ops
+# rennesdev-vps-ops
 
-Ce repo est l'exploitation réelle, en production, du socle que je déploie pour mes clients : surveillance, alertes et sauvegardes qui tournent seules.
+Scripts, unités systemd et workflows d'exploitation d'un VPS : surveillance, alertes Telegram, journal quotidien et rapports.
 
-Scripts et unités systemd d'exploitation du VPS **rennesdev.fr** (OVH, Ubuntu 26.04) :
-surveillance, alertes **Telegram**, sauvegardes **Kopia** vers un PC Windows 11 (via Tailscale), et sauvegarde à la demande par simple commande Telegram.
+## Contenu
 
-> ⚠️ **Aucun secret dans ce repo.** Tous les tokens (bot Telegram, webhook) vivent dans des fichiers root-only sur le VPS : `/etc/vps-watchdog-telegram.env`, `/etc/vps-watchdog.token`.
+- `scripts/` — scripts shell/python d'exploitation :
+  - `vps-watchdog.sh` — vérifie disque, RAM, conteneurs Docker, HTTPS public, état du backup Kopia ; alerte Telegram (timer toutes les 15 min)
+  - `vps-tgbot.py` — bot Telegram en long polling (commandes `/backup`, `/status`, `/ordres`, `/ok`, `/help`) ; enregistre les messages non-commandes dans `ORDRES.md`
+  - `vps-tg.sh` — envoi d'un message Telegram (config `/etc/vps-watchdog-telegram.env`)
+  - `vps-daily-journal.sh` — résumé quotidien du VPS (timer tous les jours 23h00 Europe/Paris)
+  - `vps-backup-on-demand.sh` — sauvegarde Kopia à la demande (démarre le serveur Kopia du PC via SSH, lance `vps-backup.service`, rapporte sur Telegram)
+  - `vps-backup-reminder.sh` — rappel hebdomadaire dimanche 12:00 Europe/Paris : état des sauvegardes → Telegram
+  - `vps-metrics-report.sh` — rapport quotidien des métriques VPS → Telegram (08h00 Europe/Paris)
+  - `github-weekly-report.sh` — rapport hebdomadaire de l'activité GitHub → repo `git-ops-journal` (vendredi 19h00 Europe/Paris)
+  - `vps-issue.sh` — ouvre/clôt des issues GitHub depuis les scripts d'alerte
+  - `git-cred-helper.sh` — credential helper git lisant le PAT dans `/etc/vps-github.env` (jamais affiché)
+- `systemd/` — 17 unités systemd (`.service`/`.timer`) : watchdog, backup, rappel backup, journal, tgbot, maintenance hebdomadaire, et timers d'audit GitHub (secret-scan, link-checker, github-cleanup, actions-audit)
+- `workflows/` — exports JSON des workflows n8n (GitHub Auditor, Stripe/Tally, diffusion Discord, push-github, eclaireur, etc.) avec README par dossier quand présent
+- `docs/` — documentation : accès mobile Tailscale, cadence GitHub, netdata, push GitHub sans secret, setup Kopia (PowerShell)
+- `skills/` — fichiers SKILL.md (github-ops, n8n-ops, stripe-ops, tally-ops, uptime-kuma, vps-sante)
+- `netdata/docker-compose.yml` — compose Netdata
+- `ETAT-VPS.md` + archives — état courant du VPS et archives mensuelles
+- `.github/` — templates d'issues/PR et workflow `stale.yml`
 
-## Architecture
+## Usage
 
-```
-                         Tailscale (chiffré, direct)
-  VPS rennesdev.fr ◄──────────────────────────────► PC Windows 11
-  - Docker: n8n, umami, ollama                      - Kopia (repo + serveur :51515)
-  - Caddy (frontal 80/443)                          - tâche planifiée "KopiaServer"
-  - Kopia client (snapshots → PC)                   - OpenSSH Server (démarrage à distance)
-  - watchdog (15 min) ──► Telegram @Vosmanubot
-  - bot Telegram (polling) ◄── /backup /status
-  - timers: backup dim 19:30, rappel dim 12:00 (Europe/Paris)
-```
-
-## Composants
-
-| Fichier | Rôle |
-|---|---|
-| `scripts/vps-watchdog.sh` | Surveillance (disque, RAM, conteneurs, HTTPS, Kopia) → alerte Telegram. Anti-spam 6h. Timer : toutes les 15 min |
-| `scripts/vps-tgbot.py` | Bot Telegram long-polling : `/backup`, `/status`, `/help` |
-| `scripts/vps-backup-on-demand.sh` | Sauvegarde à la demande : démarre le serveur Kopia du PC à distance (SSH + tâche planifiée), lance `vps-backup.service`, rapporte sur Telegram |
-| `scripts/vps-backup-reminder.sh` | Rappel hebdo dimanche 12:00 (Europe/Paris) : état backup → Telegram |
-| `scripts/vps-tg.sh` | Helper d'envoi Telegram (source : `/etc/vps-watchdog-telegram.env`) |
-| `scripts/kopia-staging.sh` | Staging : dump PostgreSQL umami + SQLite n8n + configs |
-| `scripts/kopia-backup.sh` | Staging + snapshots Kopia (volumes Docker, /home/ubuntu, /etc/caddy) |
-| `systemd/*.timer` | Planifications : watchdog 15 min · backup dim 19:30 · rappel dim 12:00 |
-
-## Commandes Telegram (bot @Vosmanubot)
-
-- **`/backup`** — lance tout : serveur Kopia du PC (à distance) + sauvegarde complète + rapport.
-- **`/status`** — état instantané : disque, RAM, conteneurs, Kopia, dernier snapshot, prochain backup.
-- **`/help`** — aide.
-
-Le bot ne répond qu'au `TG_CHAT_ID` configuré (les autres chats sont ignorés).
-
-## Installation VPS (résumé)
-
-```bash
-# 1. Secrets (root only)
-sudo install -m 600 /dev/null /etc/vps-watchdog-telegram.env
-#    → TG_BOT_TOKEN=... / TG_CHAT_ID=...
-
-# 2. Scripts
-sudo install -m 700 scripts/*.sh /usr/local/bin/
-sudo install -m 700 scripts/vps-tgbot.py /usr/local/bin/
-
-# 3. Units systemd
-sudo install systemd/* /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now vps-watchdog.timer vps-backup.timer \
-    vps-backup-reminder.timer vps-tgbot.service
-```
-
-## Setup PC Windows (one-time, admin PowerShell)
-
-```powershell
-# 1. OpenSSH Server
-Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-Start-Service sshd ; Set-Service sshd -StartupType Automatic
-
-# 2. Clé publique du VPS (auth SSH sans mot de passe)
-Add-Content -Path "$env:ProgramData\ssh\administrators_authorized_keys" `
-    -Value 'ssh-ed25519 AAAA... kopia-vps'
-icacls "$env:ProgramData\ssh\administrators_authorized_keys" /inheritance:r `
-    /grant "SYSTEM:F" /grant "BUILTIN\Administrators:F"
-
-# 3. Tâche planifiée "KopiaServer" (démarrage session + certificat figé)
-schtasks /Create /TN "KopiaServer" /RU $env:USERNAME `
-  /TR "'C:\Users\Emmanuel\AppData\Local\Programs\KopiaUI\resources\server\kopia.exe' server start --address=0.0.0.0:51515" `
-  /SC ONLOGON /RL HIGHEST /F
-```
-
-Depuis le VPS : `sudo ssh <user>@100.118.76.30 "schtasks /run /tn KopiaServer"` → le serveur Kopia démarre, sans session ouverte.
-
-## Sécurité
-
-- SSH VPS : clé uniquement (`PasswordAuthentication no`), fail2ban sshd + recidive
-- UFW : 22/80/443 uniquement
-- Bot Telegram : chat_id whitelisté, aucune commande arbitraire exécutée
-- Secrets : jamais dans les scripts ni le repo (fichiers root 600)
-
-**Emmanuel Ruaudel — Directeur de la Transformation Numérique pour TPE/PME.**
-J'aide les dirigeants à libérer 5 à 10 h par semaine en automatisant leurs tâches
-répétitives.
-
-📧 [ruaudel.emmanuel@orange.fr](mailto:ruaudel.emmanuel@orange.fr) · 🌐 [rennesdev.fr](https://rennesdev.fr)
+Les scripts sont exécutés sur le VPS via les timers systemd de `systemd/` (ou en direct pour `vps-tg.sh "message"`). Aucun secret n'est présent dans ce repo : les tokens vivent dans des fichiers root-only sur le VPS (`/etc/vps-watchdog-telegram.env`, `/etc/vps-github.env`).
